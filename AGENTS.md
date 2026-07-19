@@ -38,3 +38,8 @@
 - 修改 React、three.js 组件、Tailwind 配置或全局样式后，运行 `npm run build`。
 - 修改 `FullViewportGame`、`FixedDesignGame`、`OrientationStage`、`FixedDesignStage`、安全区映射、设计稿缩放、方向适配或业务接入后，必须运行 `npm test` 和 `npm run build`。
 - 修改中文文档后，至少用 `Get-Content -Encoding UTF8` 重新读取确认内容。
+
+## Graphify 产物
+
+- `graphify-out/` 是本地生成的代码知识图谱、缓存和临时分析文件，不得提交到 Git，也不作为模板源码引用。
+- 需要图谱时，在项目根目录运行 `/graphify .` 重新生成；长期维护的架构说明应使用人工审核的项目文档。
