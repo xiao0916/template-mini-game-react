@@ -5,7 +5,7 @@
 ## 开始
 
 ```bash
-npm ci
+npm install
 npx playwright install chromium
 npm run dev
 ```
