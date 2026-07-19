@@ -35,7 +35,7 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
 
   return (
     <section
-      className="pointer-events-none absolute inset-0 flex flex-col items-start gap-4 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)] pl-[var(--safe-left)] sm:flex-row sm:items-end sm:justify-between"
+      className="pointer-events-none absolute inset-0 flex flex-col items-start gap-4 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)] pl-[var(--safe-left)]"
       data-testid="game-hud"
       aria-label="游戏控制"
     >
@@ -59,7 +59,7 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
           spriteAtlas.get("dialog-bg.png")：未合并，继续独立加载
         </p>
       </div>
-      <div className="pointer-events-auto flex self-start items-end gap-2 sm:self-end">
+      <div className="pointer-events-auto flex self-start items-end gap-2">
         <div className="relative">
           <button
             type="button"
