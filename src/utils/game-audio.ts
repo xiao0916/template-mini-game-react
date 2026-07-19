@@ -1,3 +1,5 @@
+import { resolveResourceUrl } from "./resource-url.ts";
+
 export type AudioActionResult = "failed" | "played" | "queued" | "skipped";
 
 export type GameAudioConfiguration = {
@@ -35,11 +37,6 @@ const SOUND_PATHS = {
 } as const;
 const PREFERENCES_KEY = "sdk-game:audio-preferences:v1";
 const MAX_CONCURRENT_SFX = 6;
-
-function resolveAudioUrl(resourceBaseUrl: string | undefined, assetPath: string): string {
-  const baseUrl = resourceBaseUrl ?? "./resources/";
-  return `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${assetPath}`;
-}
 
 /**
  * 创建游戏音频管理器。首次用户交互前的背景音乐请求会被保留，解锁后才实际播放。
@@ -88,7 +85,7 @@ export function createGameAudioManager(options: GameAudioManagerOptions = {}): G
 
   const startBgm = async (): Promise<AudioActionResult> => {
     if (!isBgmRequested) return "skipped";
-    bgm ??= createAudio(resolveAudioUrl(resourceBaseUrl, DEFAULT_BGM_PATH));
+    bgm ??= createAudio(resolveResourceUrl(resourceBaseUrl, DEFAULT_BGM_PATH));
     bgm.loop = true;
     bgm.volume = isMuted ? 0 : bgmVolume;
 
@@ -112,7 +109,7 @@ export function createGameAudioManager(options: GameAudioManagerOptions = {}): G
     async playSfx(sound) {
       if (!isUnlocked || isMuted) return "skipped";
       if (activeSfx[sound] >= MAX_CONCURRENT_SFX) return "skipped";
-      const sfx = createAudio(resolveAudioUrl(resourceBaseUrl, SOUND_PATHS[sound]));
+      const sfx = createAudio(resolveResourceUrl(resourceBaseUrl, SOUND_PATHS[sound]));
       sfx.volume = sfxVolume;
       activeSfx[sound] += 1;
       let hasReleased = false;

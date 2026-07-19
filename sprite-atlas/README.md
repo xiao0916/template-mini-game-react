@@ -52,11 +52,11 @@ return atlasStyle ? (
 
 ```ts
 import { spriteAtlas } from "../sprite-atlas";
+import { resolveResourceUrl } from "../src/utils/resource-url";
 
 const frame = spriteAtlas.get("ui/start.png");
 if (frame) {
-  const baseUrl = options.resourceBaseUrl ?? "./resources/";
-  const atlasUrl = `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${frame.atlasPath}`;
+  const atlasUrl = resolveResourceUrl(options.resourceBaseUrl, frame.atlasPath);
   const u0 = frame.x / frame.atlasWidth;
   const v0 = 1 - (frame.y + frame.height) / frame.atlasHeight;
   // 使用 atlasUrl、u0、v0 与 frame 的尺寸创建 Three.js 纹理区域。

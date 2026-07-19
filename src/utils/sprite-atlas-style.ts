@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 
 import type { SpriteAtlasFrame } from "../../sprite-atlas/index.ts";
+import { px2rem, px2vw } from "./css-unit.ts";
+import { resolveResourceUrl } from "./resource-url.ts";
 
 /**
  * 图集帧转换为 CSS 背景样式时的配置。
@@ -21,10 +23,16 @@ export type SpriteAtlasStyle = Readonly<{
 }>;
 
 const spriteAtlasClassName = "bg-no-repeat [background-image:var(--sprite-atlas-image)] [background-position:var(--sprite-atlas-position)] [background-size:var(--sprite-atlas-size)] [width:var(--sprite-atlas-width)] [height:var(--sprite-atlas-height)]";
+// SDK rem 构建时手动改为 "rem"；默认 H5 与 vw SDK 使用 "vw"。
+const unit: "rem" | "vw" = "vw";
 
-function resolveResourceUrl(resourceBaseUrl: string | undefined, assetPath: string): string {
-  const baseUrl = resourceBaseUrl ?? "./resources/";
-  return `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${assetPath}`;
+function formatCssNumber(value: number): string {
+  return String(Number.parseFloat((Math.round((value + Number.EPSILON) * 100000) / 100000).toFixed(5)));
+}
+
+function toCssLength(px: number): string {
+  const value = unit === "rem" ? px2rem(px) : px2vw(px);
+  return `${formatCssNumber(value)}${unit}`;
 }
 
 /**
@@ -46,11 +54,11 @@ export function createSpriteAtlasStyle(frame: SpriteAtlasFrame | undefined, opti
   return {
     className: spriteAtlasClassName,
     style: {
-      "--sprite-atlas-height": `${frame.height * scale}px`,
+      "--sprite-atlas-height": toCssLength(frame.height * scale),
       "--sprite-atlas-image": `url(${resolveResourceUrl(options.resourceBaseUrl, frame.atlasPath)})`,
-      "--sprite-atlas-position": `-${frame.x * scale}px -${frame.y * scale}px`,
-      "--sprite-atlas-size": `${frame.atlasWidth * scale}px ${frame.atlasHeight * scale}px`,
-      "--sprite-atlas-width": `${frame.width * scale}px`,
+      "--sprite-atlas-position": `${toCssLength(-frame.x * scale)} ${toCssLength(-frame.y * scale)}`,
+      "--sprite-atlas-size": `${toCssLength(frame.atlasWidth * scale)} ${toCssLength(frame.atlasHeight * scale)}`,
+      "--sprite-atlas-width": toCssLength(frame.width * scale),
     } as CSSProperties,
   };
 }
