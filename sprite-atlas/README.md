@@ -42,6 +42,10 @@ return atlasStyle ? (
 
 `scale` 默认是 `1`，必须是有限正数；图集未命中时工具返回 `undefined`，可继续使用独立图片加载逻辑。
 
+运行时通过 React `style` 写入的 CSS 变量不会经过构建器的 PostCSS 单位转换。因此 `createSpriteAtlasStyle` 会在 `src/utils/sprite-atlas-style.ts` 中自行将设计稿 px 转为 CSS 单位，默认使用 `const unit: "rem" | "vw" = "vw"`。使用 SDK 的 rem 构建命令时，请将该常量手动改为 `"rem"`。
+
+`src/utils/css-unit.ts` 同时提供 `px2vw`、`px2rem`、`vw2px` 与 `rem2px`。默认设计稿宽度为 `750`、rem 根值为 `75`，变更 `game-sdk.config.ts` 的 CSS 设计基准时需要同步调整这些默认值。
+
 ## 运行时查询
 
 业务通过 `spriteAtlas.get(path)` 查询图集帧；未被合并的图片会返回 `undefined`。即使资源被分配到不同图集，返回的 `atlasPath` 也始终指向该帧所属图集。
