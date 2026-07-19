@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { SpriteAtlasFrame } from "../../sprite-atlas/index.ts";
+import { gameCssConfig } from "../game/css-config.ts";
 import { px2rem, px2vw } from "./css-unit.ts";
 import { resolveResourceUrl } from "./resource-url.ts";
 
@@ -23,16 +24,14 @@ export type SpriteAtlasStyle = Readonly<{
 }>;
 
 const spriteAtlasClassName = "bg-no-repeat [background-image:var(--sprite-atlas-image)] [background-position:var(--sprite-atlas-position)] [background-size:var(--sprite-atlas-size)] [width:var(--sprite-atlas-width)] [height:var(--sprite-atlas-height)]";
-// SDK rem 构建时手动改为 "rem"；默认 H5 与 vw SDK 使用 "vw"。
-const unit: "rem" | "vw" = "vw";
 
 function formatCssNumber(value: number): string {
   return String(Number.parseFloat((Math.round((value + Number.EPSILON) * 100000) / 100000).toFixed(5)));
 }
 
 function toCssLength(px: number): string {
-  const value = unit === "rem" ? px2rem(px) : px2vw(px);
-  return `${formatCssNumber(value)}${unit}`;
+  const value = gameCssConfig.unit === "rem" ? px2rem(px) : px2vw(px);
+  return `${formatCssNumber(value)}${gameCssConfig.unit}`;
 }
 
 /**

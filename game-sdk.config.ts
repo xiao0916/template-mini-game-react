@@ -1,5 +1,7 @@
 import { defineConfig } from "game-sdk-builder";
 
+import { gameCssConfig } from "./src/game/css-config";
+
 export default defineConfig({
   appEntry: "src/game/GameApp.tsx",
   styleEntry: "src/game/tailwind.css",
@@ -19,8 +21,5 @@ export default defineConfig({
     outDir: "sdk-dist",
     fileName: "game-sdk.[unit].js",
   },
-  // css: {
-  //   designWidth: 750,
-  //   remRootValue: 75,
-  // },
+  css: gameCssConfig,
 });
