@@ -1,6 +1,7 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 
 import type { GameAudioSnapshot } from "../utils/game-audio";
+import { createSpriteAtlasStyle } from "../utils/sprite-atlas-style";
 import { spriteAtlas } from "../../sprite-atlas/index";
 
 type GameHudProps = {
@@ -15,23 +16,10 @@ type GameHudProps = {
   status: string;
 };
 
-function resolveResourceUrl(resourceBaseUrl: string | undefined, assetPath: string): string {
-  const baseUrl = resourceBaseUrl ?? "./resources/";
-  return `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${assetPath}`;
-}
-
 export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlayEffect, onSfxVolumeChange, onToggleMute, onToggleFullscreen, resourceBaseUrl, status }: GameHudProps) {
   const [isAudioPanelOpen, setIsAudioPanelOpen] = useState(false);
   const atlasFrame = spriteAtlas.get("after-time.png");
-  const atlasPreviewScale = 0.42;
-  const atlasPreviewStyle: CSSProperties | undefined = atlasFrame ? {
-    backgroundImage: `url(${resolveResourceUrl(resourceBaseUrl, atlasFrame.atlasPath)})`,
-    backgroundPosition: `-${atlasFrame.x * atlasPreviewScale}px -${atlasFrame.y * atlasPreviewScale}px`,
-    backgroundRepeat: "no-repeat",
-    backgroundSize: `${atlasFrame.atlasWidth * atlasPreviewScale}px ${atlasFrame.atlasHeight * atlasPreviewScale}px`,
-    height: `${atlasFrame.height * atlasPreviewScale}px`,
-    width: `${atlasFrame.width * atlasPreviewScale}px`,
-  } : undefined;
+  const atlasPreview = createSpriteAtlasStyle(atlasFrame, { resourceBaseUrl, scale: 0.42 });
 
   return (
     <section
@@ -45,9 +33,9 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
         <p className="mt-2 text-[0.78rem] normal-case tracking-normal text-[var(--game-muted)]" aria-live="polite">
           {status}
         </p>
-        {atlasFrame ? (
+        {atlasFrame && atlasPreview ? (
           <div className="mt-3 flex items-center gap-3 normal-case tracking-normal">
-            <div data-testid="sprite-atlas-demo" aria-label="图集小图预览" className="shrink-0 rounded border border-[color:var(--game-accent)] bg-[var(--game-bg)] shadow-[0_0_18px_color-mix(in_srgb,var(--game-accent)_28%,transparent)]" style={atlasPreviewStyle} />
+            <div data-testid="sprite-atlas-demo" aria-label="图集小图预览" className={`${atlasPreview.className} shrink-0 rounded border border-[color:var(--game-accent)] bg-[var(--game-bg)] shadow-[0_0_18px_color-mix(in_srgb,var(--game-accent)_28%,transparent)]`} style={atlasPreview.style} />
             <p className="max-w-44 text-[0.65rem] leading-relaxed text-[var(--game-muted)]">
               <code className="text-[var(--game-accent)]">spriteAtlas.get("after-time.png")</code>
               <br />

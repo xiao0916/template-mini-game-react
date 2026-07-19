@@ -22,6 +22,26 @@ export default {
 
 可手动运行 `npm run sprites` 刷新产物；开发、测试和构建前会自动执行。
 
+## React 与 Tailwind 背景图
+
+DOM 中显示图集帧时，使用 `createSpriteAtlasStyle` 生成静态 Tailwind 类和运行时 CSS 变量，无需在组件内手工计算背景定位与尺寸。
+
+```tsx
+import { spriteAtlas } from "../sprite-atlas";
+import { createSpriteAtlasStyle } from "../src/utils/sprite-atlas-style";
+
+const atlasStyle = createSpriteAtlasStyle(spriteAtlas.get("ui/start.png"), {
+  resourceBaseUrl: options.resourceBaseUrl,
+  scale: 0.5,
+});
+
+return atlasStyle ? (
+  <div className={`${atlasStyle.className} shrink-0`} style={atlasStyle.style} />
+) : null;
+```
+
+`scale` 默认是 `1`，必须是有限正数；图集未命中时工具返回 `undefined`，可继续使用独立图片加载逻辑。
+
 ## 运行时查询
 
 业务通过 `spriteAtlas.get(path)` 查询图集帧；未被合并的图片会返回 `undefined`。即使资源被分配到不同图集，返回的 `atlasPath` 也始终指向该帧所属图集。

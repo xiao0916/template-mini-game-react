@@ -115,6 +115,7 @@ test("HUD 使用 spriteAtlas.get 方法预览图集中的小图", async ({ page 
 
   const demo = page.getByTestId("sprite-atlas-demo");
   await expect(demo).toBeVisible();
+  await expect(demo).toHaveClass(/bg-no-repeat/);
   await expect(demo).toHaveCSS("background-image", /sprite-atlas_[a-f0-9]{12}\.png/);
   await expect(page.getByTestId("sprite-atlas-miss")).toContainText("未合并");
 });
