@@ -57,6 +57,7 @@ export function GameLoading({ children, renderLoading, resourceBaseUrl }: GameLo
   useEffect(() => {
     const controller = new AbortController();
     let isCurrent = true;
+    let completionTimer: number | undefined;
     setStatus("loading");
     setSnapshot(getInitialProgress());
 
@@ -70,11 +71,18 @@ export function GameLoading({ children, renderLoading, resourceBaseUrl }: GameLo
     }).then((result) => {
       if (!isCurrent) return;
       setSnapshot(result);
-      setStatus(result.failed.length > 0 ? "error" : "ready");
+      if (result.failed.length > 0) {
+        setStatus("error");
+        return;
+      }
+      completionTimer = window.setTimeout(() => {
+        if (isCurrent) setStatus("ready");
+      }, 500);
     });
 
     return () => {
       isCurrent = false;
+      if (completionTimer) window.clearTimeout(completionTimer);
       controller.abort();
     };
   }, [attempt, resourceBaseUrl]);

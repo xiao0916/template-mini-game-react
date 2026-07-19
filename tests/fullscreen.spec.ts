@@ -16,6 +16,9 @@ test("resources finish loading before the game HUD is mounted", async ({ page })
   await expect(page.getByTestId("game-hud")).toHaveCount(0);
 
   releaseResources();
+  await expect(page.getByTestId("loading-progress")).toHaveAttribute("aria-valuenow", "100");
+  await page.waitForTimeout(400);
+  await expect(page.getByTestId("game-hud")).toHaveCount(0);
   await expect(page.getByTestId("game-hud")).toBeVisible();
 });
 
