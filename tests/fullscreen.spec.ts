@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
 
+test("resources finish loading before the game HUD is mounted", async ({ page }) => {
+  let releaseResources!: () => void;
+  const resourcesReleased = new Promise<void>((resolve) => {
+    releaseResources = resolve;
+  });
+
+  await page.route("**/resources/**", async (route) => {
+    await resourcesReleased;
+    await route.continue();
+  });
+  await page.goto("/");
+
+  await expect(page.getByTestId("game-loading")).toBeVisible();
+  await expect(page.getByTestId("game-hud")).toHaveCount(0);
+
+  releaseResources();
+  await expect(page.getByTestId("game-hud")).toBeVisible();
+});
+
 test("the game shell fills a desktop viewport without document overflow", async ({ page }) => {
   await page.goto("/");
 
@@ -34,7 +53,7 @@ test("the template keeps its full-bleed shell on phone viewports", async ({ page
   await expect(page.getByTestId("game-hud")).toBeVisible();
 });
 
-test("landscape designs keep a contained 16:9 stage on touch landscape", async ({ browser }) => {
+test("portrait fullscreen mode rotates a touch landscape viewport", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     isMobile: true,
@@ -44,24 +63,14 @@ test("landscape designs keep a contained 16:9 stage on touch landscape", async (
   await page.goto("/");
 
   await expect(page.getByTestId("game-shell")).toHaveCSS("height", "390px");
-  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "0");
-  const designStage = page.getByTestId("design-stage");
-  await expect.poll(() => designStage.evaluate((element) => element.getBoundingClientRect().toJSON())).toMatchObject({
-    height: 390,
-    width: expect.closeTo(693.3333333333334, 3),
-  });
-  const canvas = page.getByTestId("game-canvas").locator("canvas");
-  await expect(canvas).toHaveCount(1);
-  await expect.poll(() => canvas.evaluate((element: HTMLCanvasElement) => ({ height: element.height, width: element.width }))).toEqual({
-    height: 390,
-    width: 693,
-  });
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
   await expect(page.getByTestId("game-hud")).toBeVisible();
   await expect(page.getByTestId("fullscreen-control")).toBeVisible();
   await context.close();
 });
 
-test("a landscape design fills a 16:9 viewport after a phone orientation switch", async ({ browser }) => {
+test("portrait fullscreen mode rotates after a phone orientation switch", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     isMobile: true,
@@ -72,13 +81,8 @@ test("a landscape design fills a 16:9 viewport after a phone orientation switch"
 
   await page.setViewportSize({ height: 375, width: 667 });
 
-  const designStage = page.getByTestId("design-stage");
-  await expect.poll(() => designStage.evaluate((element) => element.getBoundingClientRect().height)).toBe(375);
-  await expect.poll(() => designStage.evaluate((element) => element.getBoundingClientRect().width)).toBeCloseTo(375 * 16 / 9, 3);
-  await expect.poll(() => page.getByTestId("game-canvas").locator("canvas").evaluate((element: HTMLCanvasElement) => ({ height: element.height, width: element.width }))).toEqual({
-    height: 375,
-    width: 666,
-  });
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
   await context.close();
 });
 

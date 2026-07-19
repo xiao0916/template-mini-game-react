@@ -66,6 +66,12 @@ layout: {
 
 SDK 宿主通过 `mount(container, options)` 传入的 `resourceBaseUrl`、`styleNonce` 与 `enableFlexible` 会由 `GameApp` 原样传给业务层。`src/business-components/DemoGame.tsx` 接收的 `GameRenderProps.options` 可直接用于资源地址等业务逻辑。
 
+## 资源预加载
+
+启动时会先预加载运行时资源，再挂载 Canvas 和 HUD。`resource-preload/manifest.ts` 由 `npm run sprites` 在图集生成后自动更新：已进入图集的原图会被排除，仅加载图集输出；未图集化图片、音频和其他资源会保留。默认加载页显示 Loading text、进度条与按完成文件数计算的百分比；资源失败时会显示失败路径并提供重试按钮。
+
+`GameLoading` 的 `renderLoading(snapshot)` 可替换默认界面，`snapshot` 提供 `status`、`progress`、`loaded`、`total`、`failed` 和 `retry()`。使用跨域 `resourceBaseUrl` 时，资源服务器必须允许 `fetch` 跨域访问。
+
 ## 小图图集
 
 图集配置、生成规则和 `spriteAtlas.get()` 接入示例见 [sprite-atlas/README.md](sprite-atlas/README.md)。
