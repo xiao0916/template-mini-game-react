@@ -1,0 +1,8 @@
+node_modules/
+dist/
+sdk-dist/
+*.tgz
+playwright-report/
+test-results/
+local-verify/
+.tokensave/

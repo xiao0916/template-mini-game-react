@@ -1,0 +1,36 @@
+{
+  "name": "demo-006-use-react-three",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sprites": "node sprite-atlas/generate.mjs",
+    "predev": "npm run sprites",
+    "prebuild": "npm run sprites",
+    "prebuild:resources": "npm run sprites",
+    "prebuild:sdk": "npm run sprites",
+    "prebuild:sdk:rem": "npm run sprites",
+    "pretest": "npm run sprites",
+    "dev": "npx game-sdk-builder dev --port 5174",
+    "build": "npx game-sdk-builder build",
+    "build:resources": "npx game-sdk-builder build --resources",
+    "build:sdk": "npx game-sdk-builder build --target sdk",
+    "build:sdk:rem": "npx game-sdk-builder build --target sdk --unit rem",
+    "preview": "npx game-sdk-builder preview",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/render.test.ts tests/orientation.test.ts tests/design-stage.test.ts tests/game-layout.test.ts tests/game-config.test.ts tests/sdk-options.test.ts tests/game-audio.test.ts tests/sprite-atlas.test.ts tests/sprite-atlas-generator.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "game-sdk-builder": "^0.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "free-tex-packer-core": "0.3.8"
+  }
+}

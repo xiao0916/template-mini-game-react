@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --game-bg: #07111f;
+  --game-text: #e0f2fe;
+  --game-muted: #cbd5e1;
+  --game-accent: #67e8f9;
+  --game-button: #0e7490;
+  --game-button-hover: #155e75;
+  --game-focus: #facc15;
+  --physical-safe-top: max(1rem, env(safe-area-inset-top));
+  --physical-safe-right: max(1rem, env(safe-area-inset-right));
+  --physical-safe-bottom: max(1rem, env(safe-area-inset-bottom));
+  --physical-safe-left: max(1rem, env(safe-area-inset-left));
+  --safe-top: var(--physical-safe-top);
+  --safe-right: var(--physical-safe-right);
+  --safe-bottom: var(--physical-safe-bottom);
+  --safe-left: var(--physical-safe-left);
+}
+
+@layer base {
+  html,
+  body {
+    @apply m-0 min-h-full w-full overflow-hidden overscroll-none;
+    background: var(--game-bg);
+  }
+}
