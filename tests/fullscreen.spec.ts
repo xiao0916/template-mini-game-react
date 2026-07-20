@@ -13,6 +13,8 @@ test("resources finish loading before the game HUD is mounted", async ({ page })
   await page.goto("/");
 
   await expect(page.getByTestId("game-loading")).toBeVisible();
+  await expect(page.getByTestId("loading-title")).toHaveText("资源同步中");
+  await expect(page.getByTestId("loading-brief")).toBeVisible();
   await expect(page.getByTestId("game-hud")).toHaveCount(0);
 
   releaseResources();
@@ -82,10 +84,36 @@ test("portrait fullscreen mode rotates after a phone orientation switch", async 
   const page = await context.newPage();
   await page.goto("/");
 
+  const initialRootFontSize = await page.evaluate(() => document.documentElement.style.fontSize);
+  expect(initialRootFontSize).toBe("37.5px");
+
   await page.setViewportSize({ height: 375, width: 667 });
 
   await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.fontSize)).toBe(initialRootFontSize);
   await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
+  await context.close();
+});
+
+test("任务 HUD 在手机端保持信息可读和触控操作可见", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { height: 844, width: 390 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await expect(page.getByTestId("mission-brief")).toBeVisible();
+  await expect(page.getByTestId("mission-status")).toHaveText("资源已同步");
+
+  for (const control of [page.getByTestId("audio-settings-control"), page.getByTestId("fullscreen-control")]) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect((box?.y ?? Number.POSITIVE_INFINITY) + (box?.height ?? 0)).toBeLessThanOrEqual(844);
+  }
+
   await context.close();
 });
 
@@ -117,5 +145,11 @@ test("HUD 使用 spriteAtlas.get 方法预览图集中的小图", async ({ page 
   await expect(demo).toBeVisible();
   await expect(demo).toHaveClass(/bg-no-repeat/);
   await expect(demo).toHaveCSS("background-image", /sprite-atlas_[a-f0-9]{12}\.png/);
-  await expect(page.getByTestId("sprite-atlas-miss")).toContainText("未合并");
+  await expect(page.getByTestId("game-hud")).toHaveClass(/inset-\[0px\]/);
+  await expect(page.getByTestId("audio-settings-control")).toHaveClass(/px-\[18px\]/);
+
+  await page.getByTestId("audio-settings-control").click();
+  await expect(page.getByTestId("audio-settings-panel")).toHaveClass(/p-\[16px\]/);
+  await expect(page.getByTestId("mission-status")).toHaveText("资源已同步");
+  await expect(page.getByTestId("asset-readiness")).toHaveText("独立资源已就绪");
 });

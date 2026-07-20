@@ -5,10 +5,12 @@ import {
   type GameOrientation,
   type RotationStrategy,
 } from "../utils/orientation";
+import { useResponsiveRootFontSize } from "../utils/root-font-size";
 import type { GameViewport } from "./GameFrame";
 
 type OrientationStageProps = {
   children: ReactNode;
+  manageRootFontSize?: boolean;
   target?: GameOrientation;
   rotationStrategy?: RotationStrategy;
   viewport: GameViewport;
@@ -25,7 +27,7 @@ function getViewportLayout(viewport: GameViewport, target: GameOrientation, rota
   });
 }
 
-export function OrientationStage({ children, rotationStrategy = "auto", target = "portrait", viewport }: OrientationStageProps) {
+export function OrientationStage({ children, manageRootFontSize = false, rotationStrategy = "auto", target = "portrait", viewport }: OrientationStageProps) {
   const [screenAngle, setScreenAngle] = useState(() => screen.orientation?.angle);
 
   useEffect(() => {
@@ -41,6 +43,12 @@ export function OrientationStage({ children, rotationStrategy = "auto", target =
   }, []);
 
   const layout = getViewportLayout(viewport, target, rotationStrategy, screenAngle);
+  useResponsiveRootFontSize({
+    enabled: manageRootFontSize,
+    height: viewport.height,
+    shouldRotate: layout.shouldRotate,
+    width: viewport.width,
+  });
 
   const safeArea = Object.fromEntries(
     Object.entries(layout.safeArea).flatMap(([edge, physicalEdge]) => [

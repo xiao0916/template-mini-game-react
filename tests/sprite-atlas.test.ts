@@ -4,7 +4,7 @@ import test from "node:test";
 import { gameCssConfig } from "../src/game/css-config.ts";
 import { px2rem, px2vw, rem2px, vw2px } from "../src/utils/css-unit.ts";
 import { resolveResourceUrl } from "../src/utils/resource-url.ts";
-import { createSpriteAtlasStyle } from "../src/utils/sprite-atlas-style.ts";
+import { createSpriteAtlasStyle, pxToCssLength } from "../src/utils/sprite-atlas-style.ts";
 import { spriteAtlas } from "../sprite-atlas/index.ts";
 
 test("未进入图集的资源不会返回帧信息", () => {
@@ -65,6 +65,12 @@ test("CSS 单位工具可在设计稿 px、vw 与 rem 间换算", () => {
   assert.equal(px2rem(gameCssConfig.remRootValue), 1);
   assert.equal(rem2px(1), gameCssConfig.remRootValue);
   assert.equal(px2vw(-15), -2);
+});
+
+test("图集 CSS 长度在 px 编译模式中保留设计稿像素", () => {
+  assert.equal(pxToCssLength(375, "px"), "375px");
+  assert.equal(pxToCssLength(375, "vw"), "50vw");
+  assert.equal(pxToCssLength(75, "rem"), "1rem");
 });
 
 test("资源 URL 工具保留默认与自定义根路径语义", () => {

@@ -15,6 +15,7 @@ export default defineConfig({
   h5: {
     title: "My Game",
     outDir: "dist",
+    resourceBaseUrl: "../resources",
   },
   sdk: {
     globalName: "GameSDK",

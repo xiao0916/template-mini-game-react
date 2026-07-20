@@ -64,7 +64,11 @@ layout: {
 
 固定设计稿模式会以完整显示模式等比缩放设计舞台，Canvas、HUD 与按钮同步缩放；视口多余空间使用 `--game-bg` 留白，不裁切、不拉伸。WebGL 像素密度会随舞台缩放变化，最大为 2，以平衡清晰度与性能。安全区会随方向和缩放映射到逻辑边缘。方向改变不会显示提示；后续若为场景内物体增加射线点击，需要额外处理旋转后的指针坐标。
 
-SDK 宿主通过 `mount(container, options)` 传入的 `resourceBaseUrl`、`styleNonce` 与 `enableFlexible` 会由 `GameApp` 原样传给业务层。`src/business-components/DemoGame.tsx` 接收的 `GameRenderProps.options` 可直接用于资源地址等业务逻辑。
+`game-sdk-builder@2` 不再管理根字号。全屏且 `css.unit` 为 `"rem"` 时，模板会按旋转后的逻辑舞台宽度设置根字号，因此同一移动设备的横竖切换不会改变 rem 尺寸；游戏卸载后会恢复 SDK 宿主原有的内联字号。`"px"` 与 `"vw"` 不会设置根字号。
+
+固定设计稿模式建议在 `src/game/css-config.ts` 中设置 `unit: "px"`。构建器会保留原始 px，设计舞台只通过 `FixedDesignStage` 的等比 `scale()` 适配，避免根字号和舞台缩放重复生效。`css.unit` 是整个构建产物的编译选项，切换布局模式时需同步调整该配置。
+
+SDK 宿主通过 `mount(container, options)` 传入的 `resourceBaseUrl` 与 `styleNonce` 会由 `GameApp` 原样传给业务层。`src/business-components/DemoGame.tsx` 接收的 `GameRenderProps.options` 可直接用于资源地址等业务逻辑。
 
 ## 资源预加载
 

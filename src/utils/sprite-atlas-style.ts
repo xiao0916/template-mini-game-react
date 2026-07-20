@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { SpriteAtlasFrame } from "../../sprite-atlas/index.ts";
-import { gameCssConfig } from "../game/css-config.ts";
+import { gameCssConfig, type GameCssUnit } from "../game/css-config.ts";
 import { px2rem, px2vw } from "./css-unit.ts";
 import { resolveResourceUrl } from "./resource-url.ts";
 
@@ -29,9 +29,21 @@ function formatCssNumber(value: number): string {
   return String(Number.parseFloat((Math.round((value + Number.EPSILON) * 100000) / 100000).toFixed(5)));
 }
 
+/**
+ * 将设计稿像素转换为构建配置对应的 CSS 长度。
+ * `px` 模式保留原值，负数与零可用于背景定位。
+ *
+ * @param px 设计稿中的像素值。
+ * @param unit 输出单位，默认使用共享 CSS 配置。
+ * @returns 可直接写入 CSS 变量的长度字符串。
+ */
+export function pxToCssLength(px: number, unit: GameCssUnit = gameCssConfig.unit): string {
+  const value = unit === "rem" ? px2rem(px) : unit === "vw" ? px2vw(px) : px;
+  return `${formatCssNumber(value)}${unit}`;
+}
+
 function toCssLength(px: number): string {
-  const value = gameCssConfig.unit === "rem" ? px2rem(px) : px2vw(px);
-  return `${formatCssNumber(value)}${gameCssConfig.unit}`;
+  return pxToCssLength(px);
 }
 
 /**
