@@ -1,7 +1,8 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Text } from "@react-three/drei";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
-import { Plane, Vector3 } from "three";
+import { Plane, PlaneGeometry, Vector3 } from "three";
 
 export type DragDemoMode = "h5" | "canvas";
 export type DragDropResult = "idle" | "retry" | "success";
@@ -20,8 +21,8 @@ type ThreePointerCaptureTarget = EventTarget & {
 
 const H5_START: DragPoint = { x: 0.18, y: 0.54 };
 const H5_TARGET: DragPoint = { x: 0.78, y: 0.54 };
-const CANVAS_START: DragPoint = { x: 0, y: -1.15 };
-const CANVAS_TARGET: DragPoint = { x: 0, y: -0.15 };
+const CANVAS_START: DragPoint = { x: -1.65, y: -0.1 };
+const CANVAS_TARGET: DragPoint = { x: 1.65, y: -0.1 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -92,7 +93,6 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
           draggingRef.current = true;
           event.currentTarget.setPointerCapture(event.pointerId);
           setPoint(nextPoint);
-          onResultChange("idle");
         }}
         onPointerMove={(event) => {
           if (!draggingRef.current) return;
@@ -171,6 +171,16 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
 
   return (
     <group>
+      <mesh position={[0, -0.1, -0.24]}>
+        <planeGeometry args={[6.8, 2.9]} />
+        <meshBasicMaterial color="#07111f" transparent opacity={0.78} />
+      </mesh>
+      <lineSegments position={[0, -0.1, -0.2]}>
+        <edgesGeometry args={[new PlaneGeometry(6.8, 2.9)]} />
+        <lineBasicMaterial color="#155e75" transparent opacity={0.9} />
+      </lineSegments>
+      <Text position={[0, 1.05, -0.1]} fontSize={0.2} color="#cbd5e1" anchorX="center" anchorY="middle">Canvas Pointer Drag</Text>
+      <Text position={[0, 0.22, -0.1]} fontSize={0.25} color="#facc15" anchorX="center" anchorY="middle">→ 将核心拖到此处 →</Text>
       <mesh position={[CANVAS_TARGET.x, CANVAS_TARGET.y, 0]} rotation={[0, 0, 0.24]}>
         <torusGeometry args={[0.72, 0.07, 16, 64]} />
         <meshBasicMaterial color="#facc15" transparent opacity={0.9} />
@@ -179,6 +189,7 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
         <circleGeometry args={[0.6, 48]} />
         <meshBasicMaterial color="#facc15" transparent opacity={0.14} />
       </mesh>
+      <Text position={[CANVAS_TARGET.x, -1.0, -0.1]} fontSize={0.18} color="#fde68a" anchorX="center" anchorY="middle">能量槽</Text>
       <group
         position={[point.x, point.y, 0.12]}
         onPointerDown={(event) => {
@@ -188,7 +199,6 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
           (event.target as ThreePointerCaptureTarget).setPointerCapture(event.pointerId);
           const nextPoint = readPointerPoint(event);
           if (nextPoint) setPoint(nextPoint);
-          onResultChange("idle");
         }}
         onPointerMove={(event) => {
           if (!draggingRef.current) return;

@@ -21,9 +21,9 @@ async function dragCanvasByMouse(page: import("@playwright/test").Page) {
 
   expect(box).not.toBeNull();
   if (!box) return;
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.736);
+  await page.mouse.move(box.x + box.width * 0.363, box.y + box.height * 0.581);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.588, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.637, box.y + box.height * 0.581, { steps: 8 });
   await page.mouse.up();
 }
 
@@ -253,7 +253,7 @@ test("触摸 Pointer Event 可完成 Canvas 拖拽", async ({ browser }) => {
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (box) {
-    await dragByTouch(canvas, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.736 }, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.588 });
+    await dragByTouch(canvas, { x: box.x + box.width * 0.363, y: box.y + box.height * 0.581 }, { x: box.x + box.width * 0.637, y: box.y + box.height * 0.581 });
   }
 
   await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
