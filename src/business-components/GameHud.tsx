@@ -3,12 +3,17 @@ import { useState } from "react";
 import { spriteAtlas } from "../../sprite-atlas/index";
 import type { GameAudioSnapshot } from "../utils/game-audio";
 import { createSpriteAtlasStyle } from "../utils/sprite-atlas-style";
+import type { DragDemoMode, DragDropResult } from "./DragDropDemo";
 
 type GameHudProps = {
   audioSettings: GameAudioSnapshot;
+  dragMode: DragDemoMode;
+  dragResult: DragDropResult;
   isFullscreen: boolean;
   onBgmVolumeChange: (volume: number) => void;
+  onDragModeChange: (mode: DragDemoMode) => void;
   onPlayEffect: () => void;
+  onResetDrag: () => void;
   onSfxVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
   onToggleFullscreen: () => void;
@@ -16,7 +21,13 @@ type GameHudProps = {
   status: string;
 };
 
-export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlayEffect, onSfxVolumeChange, onToggleMute, onToggleFullscreen, resourceBaseUrl, status }: GameHudProps) {
+function getDragStatus(result: DragDropResult) {
+  if (result === "success") return "投放成功";
+  if (result === "retry") return "未命中目标，请重试";
+  return "拖动信号核心至能量槽";
+}
+
+export function GameHud({ audioSettings, dragMode, dragResult, isFullscreen, onBgmVolumeChange, onDragModeChange, onPlayEffect, onResetDrag, onSfxVolumeChange, onToggleMute, onToggleFullscreen, resourceBaseUrl, status }: GameHudProps) {
   const [isAudioPanelOpen, setIsAudioPanelOpen] = useState(false);
   const atlasFrame = spriteAtlas.get("after-time.png");
   const atlasPreview = createSpriteAtlasStyle(atlasFrame, { resourceBaseUrl, scale: 0.42 });
@@ -29,7 +40,7 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
       aria-label="游戏控制"
     >
       <div
-        className="pointer-events-auto relative w-[min(100%,540px)] overflow-hidden border-[1px] border-[color:rgb(103_232_249_/_0.38)] bg-[linear-gradient(135deg,rgb(7_17_31_/_0.92),rgb(7_17_31_/_0.64))] px-[18px] py-[16px] shadow-[0_0_40px_rgb(14_116_144_/_0.18)] backdrop-blur-[12px]"
+        className="pointer-events-none relative w-[min(100%,540px)] overflow-hidden border-[1px] border-[color:rgb(103_232_249_/_0.38)] bg-[linear-gradient(135deg,rgb(7_17_31_/_0.92),rgb(7_17_31_/_0.64))] px-[18px] py-[16px] shadow-[0_0_40px_rgb(14_116_144_/_0.18)] backdrop-blur-[12px]"
         data-testid="mission-brief"
       >
         <div className="absolute inset-y-[0px] left-[0px] w-[3px] bg-[var(--game-accent)] shadow-[0_0_18px_var(--game-accent)]" />
@@ -52,10 +63,27 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
             <p className="mt-[2px] text-[11px]" data-testid="asset-readiness">独立资源已就绪</p>
           </div>
         </div>
+        <section className="pointer-events-auto mt-[16px] border-t-[1px] border-[color:rgb(103_232_249_/_0.16)] pt-[14px]" aria-label="拖拽演示控制">
+          <div className="flex flex-wrap items-center justify-between gap-[10px]">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--game-accent)]">拖拽演示</div>
+            <button type="button" data-testid="drag-reset-control" onClick={onResetDrag} className="h-[32px] border-[1px] border-[color:rgb(103_232_249_/_0.42)] px-[10px] text-[12px] font-bold text-[var(--game-text)]">
+              重置当前模式
+            </button>
+          </div>
+          <div className="mt-[10px] grid grid-cols-2 gap-[6px]" role="group" aria-label="拖拽模式">
+            <button type="button" data-testid="drag-mode-h5" aria-pressed={dragMode === "h5"} onClick={() => onDragModeChange("h5")} className={`h-[36px] border-[1px] px-[10px] text-[12px] font-bold ${dragMode === "h5" ? "border-[var(--game-accent)] bg-[color:rgb(34_211_238_/_0.14)] text-[var(--game-accent)]" : "border-[color:rgb(103_232_249_/_0.28)] text-[var(--game-muted)]"}`}>
+              普通 H5
+            </button>
+            <button type="button" data-testid="drag-mode-canvas" aria-pressed={dragMode === "canvas"} onClick={() => onDragModeChange("canvas")} className={`h-[36px] border-[1px] px-[10px] text-[12px] font-bold ${dragMode === "canvas" ? "border-[var(--game-accent)] bg-[color:rgb(34_211_238_/_0.14)] text-[var(--game-accent)]" : "border-[color:rgb(103_232_249_/_0.28)] text-[var(--game-muted)]"}`}>
+              Canvas
+            </button>
+          </div>
+          <p className="mt-[9px] text-[12px] font-bold text-[#fde68a]" data-testid="drag-status" role="status" aria-live="polite">{getDragStatus(dragResult)}</p>
+        </section>
       </div>
 
-      <div className="pointer-events-auto flex items-end gap-[10px]" data-testid="mission-controls">
-        <div className="relative">
+      <div className="pointer-events-none flex items-end gap-[10px]" data-testid="mission-controls">
+        <div className="pointer-events-auto relative">
           <button
             type="button"
             className="h-[46px] rounded-full border-[1px] border-[color:var(--game-accent)] bg-[color:rgb(14_116_144_/_0.82)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(14_116_144_/_0.28)] transition hover:-translate-y-px hover:bg-[var(--game-button-hover)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none"
@@ -81,7 +109,7 @@ export function GameHud({ audioSettings, isFullscreen, onBgmVolumeChange, onPlay
             </section>
           ) : null}
         </div>
-        <button type="button" className="h-[46px] rounded-full border-[1px] border-[color:rgb(224_242_254_/_0.42)] bg-[color:rgb(7_17_31_/_0.74)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(0_0_0_/_0.2)] transition hover:-translate-y-px hover:border-[var(--game-accent)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none" data-testid="fullscreen-control" onClick={onToggleFullscreen} style={primaryControlStyle}>
+        <button type="button" className="pointer-events-auto h-[46px] rounded-full border-[1px] border-[color:rgb(224_242_254_/_0.42)] bg-[color:rgb(7_17_31_/_0.74)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(0_0_0_/_0.2)] transition hover:-translate-y-px hover:border-[var(--game-accent)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none" data-testid="fullscreen-control" onClick={onToggleFullscreen} style={primaryControlStyle}>
           {isFullscreen ? "退出全屏" : "进入全屏"}
         </button>
       </div>

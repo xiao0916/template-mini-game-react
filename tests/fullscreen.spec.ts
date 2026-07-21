@@ -1,5 +1,40 @@
 import { expect, test } from "@playwright/test";
 
+async function dragByMouse(page: import("@playwright/test").Page, sourceTestId: string, targetTestId: string) {
+  const source = page.getByTestId(sourceTestId);
+  const target = page.getByTestId(targetTestId);
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  if (!sourceBox || !targetBox) return;
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
+async function dragCanvasByMouse(page: import("@playwright/test").Page) {
+  const canvas = page.getByTestId("game-canvas").locator("canvas");
+  const box = await canvas.boundingBox();
+
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.736);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.588, { steps: 8 });
+  await page.mouse.up();
+}
+
+async function dragByTouch(locator: import("@playwright/test").Locator, start: { x: number; y: number }, end: { x: number; y: number }) {
+  const pointer = { button: 0, buttons: 1, isPrimary: true, pointerId: 1, pointerType: "touch" };
+
+  await locator.dispatchEvent("pointerdown", { ...pointer, clientX: start.x, clientY: start.y });
+  await locator.dispatchEvent("pointermove", { ...pointer, clientX: end.x, clientY: end.y });
+  await locator.dispatchEvent("pointerup", { ...pointer, buttons: 0, clientX: end.x, clientY: end.y });
+}
+
 test("resources finish loading before the game HUD is mounted", async ({ page }) => {
   let releaseResources!: () => void;
   const resourcesReleased = new Promise<void>((resolve) => {
@@ -152,4 +187,75 @@ test("HUD 使用 spriteAtlas.get 方法预览图集中的小图", async ({ page 
   await expect(page.getByTestId("audio-settings-panel")).toHaveClass(/p-\[16px\]/);
   await expect(page.getByTestId("mission-status")).toHaveText("资源已同步");
   await expect(page.getByTestId("asset-readiness")).toHaveText("独立资源已就绪");
+});
+
+test("普通 H5 拖拽命中目标后可重置", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByTestId("drag-mode-h5").click();
+  await dragByMouse(page, "h5-drag-item", "h5-drop-target");
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+
+  await page.getByTestId("drag-reset-control").click();
+  await expect(page.getByTestId("drag-status")).toHaveText("拖动信号核心至能量槽");
+});
+
+test("Canvas 拖拽成功后切换模式仍保留完成状态", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByTestId("drag-mode-canvas").click();
+  await expect(page.getByTestId("drag-mode-canvas")).toHaveAttribute("aria-pressed", "true");
+  await dragCanvasByMouse(page);
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+
+  await page.getByTestId("drag-mode-h5").click();
+  await page.getByTestId("drag-mode-canvas").click();
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+});
+
+test("Canvas 空白区域不会启动拖拽", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("drag-mode-canvas").click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas");
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (box) await page.mouse.click(box.x + box.width * 0.05, box.y + box.height * 0.05);
+
+  await expect(page.getByTestId("drag-status")).toHaveText("拖动信号核心至能量槽");
+});
+
+test("触摸 Pointer Event 可完成 H5 拖拽", async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { height: 844, width: 390 } });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  const item = page.getByTestId("h5-drag-item");
+  const target = page.getByTestId("h5-drop-target");
+  const itemBox = await item.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(itemBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  if (itemBox && targetBox) {
+    await dragByTouch(item, { x: itemBox.x + itemBox.width / 2, y: itemBox.y + itemBox.height / 2 }, { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 });
+  }
+
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+  await context.close();
+});
+
+test("触摸 Pointer Event 可完成 Canvas 拖拽", async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { height: 844, width: 390 } });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await page.getByTestId("drag-mode-canvas").click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas");
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (box) {
+    await dragByTouch(canvas, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.736 }, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.588 });
+  }
+
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+  await context.close();
 });
