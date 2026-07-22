@@ -26,6 +26,6 @@ export const gameConfig: GameConfig = {
   },
   layout: {
     mode: "fullscreen",
-    orientation: "portrait",
+    orientation: "landscape",
   },
 };

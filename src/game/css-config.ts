@@ -11,7 +11,7 @@ type GameCssConfig = Readonly<{
  * 修改此配置会同时影响 game-sdk-builder 的 PostCSS 转换和运行时 CSS 变量。
  */
 export const gameCssConfig: GameCssConfig = {
-  designWidth: 750,
-  remRootValue: 75,
+  designWidth: 1920,
+  remRootValue: 192,
   unit: "rem",
 } as const;
