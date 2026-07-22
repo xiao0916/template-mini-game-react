@@ -1,13 +1,15 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Text } from "@react-three/drei";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Plane, PlaneGeometry, Vector3 } from "three";
 
-export type DragDemoMode = "h5" | "canvas";
-export type DragDropResult = "idle" | "retry" | "success";
+import { clampDragValue, getRotatedStagePointerPoint, type DragPoint } from "./drag-point";
+import { useDragDrop, type DragDropResult } from "./useDragDrop";
 
-type DragPoint = { x: number; y: number };
+export type { DragDropResult } from "./useDragDrop";
+
+export type DragDemoMode = "h5" | "canvas";
 
 type DragDemoProps = {
   result: DragDropResult;
@@ -58,55 +60,29 @@ const CANVAS_PORTRAIT_LAYOUT: CanvasDemoLayout = {
   titlePosition: { x: 0, y: 2.05 },
 };
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function isNearTarget(point: DragPoint, target: DragPoint, radius: number) {
-  return Math.hypot(point.x - target.x, point.y - target.y) <= radius;
-}
-
 export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
-  const [point, setPoint] = useState(H5_START);
-
-  useEffect(() => {
-    if (draggingRef.current) return;
-    setPoint(result === "success" ? H5_TARGET : H5_START);
-  }, [result]);
+  const { begin, cancel, end, move, point } = useDragDrop({
+    initialPoint: H5_START,
+    onResultChange,
+    result,
+    targetPoint: H5_TARGET,
+    targetRadius: 0.14,
+  });
 
   const readPointerPoint = (event: ReactPointerEvent<HTMLButtonElement>): DragPoint | null => {
     const stage = stageRef.current;
     if (!stage) return null;
-    const rect = stage.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return null;
-    const physicalPoint = {
-      x: (event.clientX - rect.left) / rect.width,
-      y: (event.clientY - rect.top) / rect.height,
-    };
-    const rotation = stage.closest<HTMLElement>("[data-rotation]")?.dataset.rotation;
-    const logicalPoint = rotation === "90"
-      ? { x: physicalPoint.y, y: 1 - physicalPoint.x }
-      : rotation === "-90"
-        ? { x: 1 - physicalPoint.y, y: physicalPoint.x }
-        : physicalPoint;
+    const rotationValue = stage.closest<HTMLElement>("[data-rotation]")?.dataset.rotation;
+    const rotation = rotationValue === "90" ? 90 : rotationValue === "-90" ? -90 : 0;
 
-    return {
-      x: clamp(logicalPoint.x, 0.08, 0.92),
-      y: clamp(logicalPoint.y, 0.18, 0.82),
-    };
-  };
-
-  const completeDrag = (nextPoint: DragPoint) => {
-    draggingRef.current = false;
-    if (isNearTarget(nextPoint, H5_TARGET, 0.14)) {
-      setPoint(H5_TARGET);
-      onResultChange("success");
-      return;
-    }
-    setPoint(H5_START);
-    onResultChange("retry");
+    return getRotatedStagePointerPoint({
+      bounds: { x: [0.08, 0.92], y: [0.18, 0.82] },
+      clientX: event.clientX,
+      clientY: event.clientY,
+      rect: stage.getBoundingClientRect(),
+      rotation,
+    });
   };
 
   return (
@@ -135,35 +111,21 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
           if (event.button !== 0) return;
           const nextPoint = readPointerPoint(event);
           if (!nextPoint) return;
-          draggingRef.current = true;
-          if (result === "success") onResultChange("idle");
+          begin(nextPoint);
           event.currentTarget.setPointerCapture(event.pointerId);
-          setPoint(nextPoint);
         }}
         onPointerMove={(event) => {
-          if (!draggingRef.current) return;
           const nextPoint = readPointerPoint(event);
-          if (nextPoint) setPoint(nextPoint);
+          if (nextPoint) move(nextPoint);
         }}
         onPointerUp={(event) => {
-          if (!draggingRef.current) return;
           const nextPoint = readPointerPoint(event);
           if (!nextPoint) return;
-          completeDrag(nextPoint);
+          end(nextPoint);
           event.currentTarget.releasePointerCapture(event.pointerId);
         }}
-        onPointerCancel={() => {
-          if (!draggingRef.current) return;
-          draggingRef.current = false;
-          setPoint(H5_START);
-          onResultChange("retry");
-        }}
-        onLostPointerCapture={() => {
-          if (!draggingRef.current) return;
-          draggingRef.current = false;
-          setPoint(H5_START);
-          onResultChange("retry");
-        }}
+        onPointerCancel={cancel}
+        onLostPointerCapture={cancel}
       >
         核心
       </button>
@@ -173,16 +135,16 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
 
 export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDragDemoProps) {
   const { gl, size } = useThree();
-  const draggingRef = useRef(false);
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), []);
   const dragPoint = useMemo(() => new Vector3(), []);
   const layout = size.height > size.width ? CANVAS_PORTRAIT_LAYOUT : CANVAS_LANDSCAPE_LAYOUT;
-  const [point, setPoint] = useState(CANVAS_LANDSCAPE_LAYOUT.start);
-
-  useEffect(() => {
-    if (draggingRef.current) return;
-    setPoint(result === "success" ? layout.target : layout.start);
-  }, [layout, result]);
+  const { begin, cancel, end, move, point } = useDragDrop({
+    initialPoint: layout.start,
+    onResultChange,
+    result,
+    targetPoint: layout.target,
+    targetRadius: 1.1,
+  });
 
   useEffect(() => {
     onReady();
@@ -192,34 +154,17 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
     const hit = event.ray.intersectPlane(dragPlane, dragPoint);
     if (!hit) return null;
     return {
-      x: clamp(hit.x, -2.6, 2.6),
-      y: clamp(hit.y, -1.35, 1.35),
+      x: clampDragValue(hit.x, -2.6, 2.6),
+      y: clampDragValue(hit.y, -1.35, 1.35),
     };
-  };
-
-  const completeDrag = (nextPoint: DragPoint) => {
-    draggingRef.current = false;
-    if (isNearTarget(nextPoint, layout.target, 1.1)) {
-      setPoint(layout.target);
-      onResultChange("success");
-      return;
-    }
-    setPoint(layout.start);
-    onResultChange("retry");
   };
 
   useEffect(() => {
-    const resetAfterCaptureLoss = () => {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      setPoint(layout.start);
-      onResultChange("retry");
-    };
     const canvas = gl.domElement;
 
-    canvas.addEventListener("lostpointercapture", resetAfterCaptureLoss);
-    return () => canvas.removeEventListener("lostpointercapture", resetAfterCaptureLoss);
-  }, [gl, layout, onResultChange]);
+    canvas.addEventListener("lostpointercapture", cancel);
+    return () => canvas.removeEventListener("lostpointercapture", cancel);
+  }, [cancel, gl]);
 
   return (
     <group>
@@ -250,32 +195,24 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
         position={[point.x, point.y, 0.12]}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
-          event.stopPropagation();
-          draggingRef.current = true;
-          if (result === "success") onResultChange("idle");
-          (event.target as ThreePointerCaptureTarget).setPointerCapture(event.pointerId);
           const nextPoint = readPointerPoint(event);
-          if (nextPoint) setPoint(nextPoint);
+          if (!nextPoint) return;
+          event.stopPropagation();
+          begin(nextPoint);
+          (event.target as ThreePointerCaptureTarget).setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!draggingRef.current) return;
-          event.stopPropagation();
           const nextPoint = readPointerPoint(event);
-          if (nextPoint) setPoint(nextPoint);
+          if (!nextPoint || !move(nextPoint)) return;
+          event.stopPropagation();
         }}
         onPointerUp={(event) => {
-          if (!draggingRef.current) return;
-          event.stopPropagation();
           const nextPoint = readPointerPoint(event);
-          if (nextPoint) completeDrag(nextPoint);
+          if (!nextPoint || !end(nextPoint)) return;
+          event.stopPropagation();
           (event.target as ThreePointerCaptureTarget).releasePointerCapture(event.pointerId);
         }}
-        onPointerCancel={() => {
-          if (!draggingRef.current) return;
-          draggingRef.current = false;
-          setPoint(layout.start);
-          onResultChange("retry");
-        }}
+        onPointerCancel={cancel}
       >
         <mesh>
           <sphereGeometry args={[1.1, 24, 24]} />

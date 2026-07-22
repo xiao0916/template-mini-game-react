@@ -3,7 +3,7 @@ import { useState } from "react";
 import { spriteAtlas } from "../../sprite-atlas/index";
 import type { GameAudioSnapshot } from "../utils/game-audio";
 import { createSpriteAtlasStyle } from "../utils/sprite-atlas-style";
-import type { DragDemoMode, DragDropResult } from "./DragDropDemo";
+import type { DragDemoMode, DragDropResult } from "./drag-drop";
 
 type GameHudProps = {
   audioSettings: GameAudioSnapshot;

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { GameRenderProps } from "../components/GameFrame";
 import { gameAudio, type GameAudioSnapshot } from "../utils/game-audio";
-import { CanvasDragDropDemo, H5DragDropDemo, type DragDemoMode, type DragDropResult } from "./DragDropDemo";
+import { CanvasDragDropDemo, H5DragDropDemo, type DragDemoMode, type DragDropResult } from "./drag-drop";
 import { GameHud } from "./GameHud";
 
 export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }: GameRenderProps) {
