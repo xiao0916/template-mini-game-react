@@ -17,13 +17,14 @@ async function dragByMouse(page: import("@playwright/test").Page, sourceTestId: 
 
 async function dragCanvasByMouse(page: import("@playwright/test").Page) {
   const canvas = page.getByTestId("game-canvas").locator("canvas");
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
   const box = await canvas.boundingBox();
 
   expect(box).not.toBeNull();
   if (!box) return;
-  await page.mouse.move(box.x + box.width * 0.363, box.y + box.height * 0.581);
+  await page.mouse.move(box.x + box.width * 0.446, box.y + box.height * 0.65);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.637, box.y + box.height * 0.581, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.683, box.y + box.height * 0.65, { steps: 8 });
   await page.mouse.up();
 }
 
@@ -33,6 +34,13 @@ async function dragByTouch(locator: import("@playwright/test").Locator, start: {
   await locator.dispatchEvent("pointerdown", { ...pointer, clientX: start.x, clientY: start.y });
   await locator.dispatchEvent("pointermove", { ...pointer, clientX: end.x, clientY: end.y });
   await locator.dispatchEvent("pointerup", { ...pointer, buttons: 0, clientX: end.x, clientY: end.y });
+}
+
+async function dragCanvasByTouch(page: import("@playwright/test").Page, start: { x: number; y: number }, end: { x: number; y: number }) {
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", { touchPoints: [{ id: 1, x: start.x, y: start.y }], type: "touchStart" });
+  await client.send("Input.dispatchTouchEvent", { touchPoints: [{ id: 1, x: end.x, y: end.y }], type: "touchMove" });
+  await client.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" });
 }
 
 test("resources finish loading before the game HUD is mounted", async ({ page }) => {
@@ -81,8 +89,10 @@ test("the game shell fills a desktop viewport without document overflow", async 
     width: dimensions.viewportWidth,
   });
   await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "0");
-  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
+  await expect(page.getByTestId("h5-drag-stage")).toBeVisible();
   await expect(page.getByTestId("game-hud")).toBeVisible();
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
 });
 
 test("the template keeps its full-bleed shell on phone viewports", async ({ page }) => {
@@ -104,7 +114,7 @@ test("portrait fullscreen mode rotates a touch landscape viewport", async ({ bro
 
   await expect(page.getByTestId("game-shell")).toHaveCSS("height", "390px");
   await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
-  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
   await expect(page.getByTestId("game-hud")).toBeVisible();
   await expect(page.getByTestId("fullscreen-control")).toBeVisible();
   await context.close();
@@ -126,7 +136,8 @@ test("portrait fullscreen mode rotates after a phone orientation switch", async 
 
   await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
   await expect.poll(() => page.evaluate(() => document.documentElement.style.fontSize)).toBe(initialRootFontSize);
-  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
+  await expect(page.getByTestId("h5-drag-stage")).toBeVisible();
   await context.close();
 });
 
@@ -200,6 +211,18 @@ test("普通 H5 拖拽命中目标后可重置", async ({ page }) => {
   await expect(page.getByTestId("drag-status")).toHaveText("拖动信号核心至能量槽");
 });
 
+test("模式切换只挂载当前渲染舞台", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByTestId("h5-drag-stage")).toBeVisible();
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
+
+  await page.getByTestId("drag-mode-canvas").click();
+  await expect(page.getByTestId("h5-drag-stage")).toHaveCount(0);
+  await expect(page.getByTestId("game-canvas").locator("canvas")).toHaveCount(1);
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
+});
+
 test("Canvas 拖拽成功后切换模式仍保留完成状态", async ({ page }) => {
   await page.goto("/");
 
@@ -217,6 +240,7 @@ test("Canvas 空白区域不会启动拖拽", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("drag-mode-canvas").click();
   const canvas = page.getByTestId("game-canvas").locator("canvas");
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (box) await page.mouse.click(box.x + box.width * 0.05, box.y + box.height * 0.05);
@@ -244,16 +268,17 @@ test("触摸 Pointer Event 可完成 H5 拖拽", async ({ browser }) => {
 });
 
 test("触摸 Pointer Event 可完成 Canvas 拖拽", async ({ browser }) => {
-  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { height: 844, width: 390 } });
+  const context = await browser.newContext({ viewport: { height: 720, width: 1280 } });
   const page = await context.newPage();
   await page.goto("/");
 
   await page.getByTestId("drag-mode-canvas").click();
   const canvas = page.getByTestId("game-canvas").locator("canvas");
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (box) {
-    await dragByTouch(canvas, { x: box.x + box.width * 0.363, y: box.y + box.height * 0.581 }, { x: box.x + box.width * 0.637, y: box.y + box.height * 0.581 });
+    await dragCanvasByTouch(page, { x: box.x + box.width * 0.446, y: box.y + box.height * 0.65 }, { x: box.x + box.width * 0.683, y: box.y + box.height * 0.65 });
   }
 
   await expect(page.getByTestId("drag-status")).toHaveText("投放成功");

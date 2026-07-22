@@ -1,5 +1,5 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Plane, PlaneGeometry, Vector3 } from "three";
@@ -14,6 +14,10 @@ type DragDemoProps = {
   onResultChange: (result: DragDropResult) => void;
 };
 
+type CanvasDragDemoProps = DragDemoProps & {
+  onReady: () => void;
+};
+
 type ThreePointerCaptureTarget = EventTarget & {
   releasePointerCapture: (pointerId: number) => void;
   setPointerCapture: (pointerId: number) => void;
@@ -21,8 +25,38 @@ type ThreePointerCaptureTarget = EventTarget & {
 
 const H5_START: DragPoint = { x: 0.18, y: 0.54 };
 const H5_TARGET: DragPoint = { x: 0.78, y: 0.54 };
-const CANVAS_START: DragPoint = { x: -1.65, y: -0.1 };
-const CANVAS_TARGET: DragPoint = { x: 1.65, y: -0.1 };
+type CanvasDemoLayout = {
+  boardCenter: DragPoint;
+  boardSize: [number, number];
+  instruction: string;
+  instructionPosition: DragPoint;
+  start: DragPoint;
+  target: DragPoint;
+  targetLabelPosition: DragPoint;
+  titlePosition: DragPoint;
+};
+
+const CANVAS_LANDSCAPE_LAYOUT: CanvasDemoLayout = {
+  boardCenter: { x: 0.75, y: -0.85 },
+  boardSize: [6.4, 2.5],
+  instruction: "→ 将核心拖到此处 →",
+  instructionPosition: { x: 0.75, y: -0.48 },
+  start: { x: -0.65, y: -0.85 },
+  target: { x: 2.2, y: -0.85 },
+  targetLabelPosition: { x: 2.2, y: -1.72 },
+  titlePosition: { x: 0.75, y: 0.08 },
+};
+
+const CANVAS_PORTRAIT_LAYOUT: CanvasDemoLayout = {
+  boardCenter: { x: 0, y: -0.15 },
+  boardSize: [2.7, 5.3],
+  instruction: "↑ 将核心拖到此处 ↑",
+  instructionPosition: { x: 0, y: 0.62 },
+  start: { x: 0, y: -1.3 },
+  target: { x: 0, y: 1.15 },
+  targetLabelPosition: { x: 0, y: 0.22 },
+  titlePosition: { x: 0, y: 2.05 },
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -125,16 +159,21 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
   );
 }
 
-export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
-  const { gl } = useThree();
+export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDragDemoProps) {
+  const { gl, size } = useThree();
   const draggingRef = useRef(false);
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), []);
   const dragPoint = useMemo(() => new Vector3(), []);
-  const [point, setPoint] = useState(CANVAS_START);
+  const layout = size.height > size.width ? CANVAS_PORTRAIT_LAYOUT : CANVAS_LANDSCAPE_LAYOUT;
+  const [point, setPoint] = useState(CANVAS_LANDSCAPE_LAYOUT.start);
 
   useEffect(() => {
-    setPoint(result === "success" ? CANVAS_TARGET : CANVAS_START);
-  }, [result]);
+    setPoint(result === "success" ? layout.target : layout.start);
+  }, [layout, result]);
+
+  useEffect(() => {
+    onReady();
+  }, [onReady]);
 
   const readPointerPoint = (event: ThreeEvent<PointerEvent>): DragPoint | null => {
     const hit = event.ray.intersectPlane(dragPlane, dragPoint);
@@ -147,12 +186,12 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
 
   const completeDrag = (nextPoint: DragPoint) => {
     draggingRef.current = false;
-    if (isNearTarget(nextPoint, CANVAS_TARGET, 1.1)) {
-      setPoint(CANVAS_TARGET);
+    if (isNearTarget(nextPoint, layout.target, 1.1)) {
+      setPoint(layout.target);
       onResultChange("success");
       return;
     }
-    setPoint(CANVAS_START);
+    setPoint(layout.start);
     onResultChange("retry");
   };
 
@@ -160,36 +199,40 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
     const resetAfterCaptureLoss = () => {
       if (!draggingRef.current) return;
       draggingRef.current = false;
-      setPoint(CANVAS_START);
+      setPoint(layout.start);
       onResultChange("retry");
     };
     const canvas = gl.domElement;
 
     canvas.addEventListener("lostpointercapture", resetAfterCaptureLoss);
     return () => canvas.removeEventListener("lostpointercapture", resetAfterCaptureLoss);
-  }, [gl, onResultChange]);
+  }, [gl, layout, onResultChange]);
 
   return (
     <group>
-      <mesh position={[0, -0.1, -0.24]}>
-        <planeGeometry args={[6.8, 2.9]} />
+      <mesh position={[layout.boardCenter.x, layout.boardCenter.y, -0.24]}>
+        <planeGeometry args={layout.boardSize} />
         <meshBasicMaterial color="#07111f" transparent opacity={0.78} />
       </mesh>
-      <lineSegments position={[0, -0.1, -0.2]}>
-        <edgesGeometry args={[new PlaneGeometry(6.8, 2.9)]} />
+      <lineSegments position={[layout.boardCenter.x, layout.boardCenter.y, -0.2]}>
+        <edgesGeometry args={[new PlaneGeometry(...layout.boardSize)]} />
         <lineBasicMaterial color="#155e75" transparent opacity={0.9} />
       </lineSegments>
-      <Text position={[0, 1.05, -0.1]} fontSize={0.2} color="#cbd5e1" anchorX="center" anchorY="middle">Canvas Pointer Drag</Text>
-      <Text position={[0, 0.22, -0.1]} fontSize={0.25} color="#facc15" anchorX="center" anchorY="middle">→ 将核心拖到此处 →</Text>
-      <mesh position={[CANVAS_TARGET.x, CANVAS_TARGET.y, 0]} rotation={[0, 0, 0.24]}>
+      <Suspense fallback={null}>
+        <Text position={[layout.titlePosition.x, layout.titlePosition.y, -0.1]} fontSize={0.2} color="#cbd5e1" anchorX="center" anchorY="middle">Canvas Pointer Drag</Text>
+        <Text position={[layout.instructionPosition.x, layout.instructionPosition.y, -0.1]} fontSize={0.25} color="#facc15" anchorX="center" anchorY="middle">{layout.instruction}</Text>
+      </Suspense>
+      <mesh position={[layout.target.x, layout.target.y, 0]} rotation={[0, 0, 0.24]}>
         <torusGeometry args={[0.72, 0.07, 16, 64]} />
         <meshBasicMaterial color="#facc15" transparent opacity={0.9} />
       </mesh>
-      <mesh position={[CANVAS_TARGET.x, CANVAS_TARGET.y, -0.08]}>
+      <mesh position={[layout.target.x, layout.target.y, -0.08]}>
         <circleGeometry args={[0.6, 48]} />
         <meshBasicMaterial color="#facc15" transparent opacity={0.14} />
       </mesh>
-      <Text position={[CANVAS_TARGET.x, -1.0, -0.1]} fontSize={0.18} color="#fde68a" anchorX="center" anchorY="middle">能量槽</Text>
+      <Suspense fallback={null}>
+        <Text position={[layout.targetLabelPosition.x, layout.targetLabelPosition.y, -0.1]} fontSize={0.18} color="#fde68a" anchorX="center" anchorY="middle">能量槽</Text>
+      </Suspense>
       <group
         position={[point.x, point.y, 0.12]}
         onPointerDown={(event) => {
@@ -216,7 +259,7 @@ export function CanvasDragDropDemo({ onResultChange, result }: DragDemoProps) {
         onPointerCancel={() => {
           if (!draggingRef.current) return;
           draggingRef.current = false;
-          setPoint(CANVAS_START);
+          setPoint(layout.start);
           onResultChange("retry");
         }}
       >
