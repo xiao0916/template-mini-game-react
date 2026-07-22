@@ -72,6 +72,7 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
   const [point, setPoint] = useState(H5_START);
 
   useEffect(() => {
+    if (draggingRef.current) return;
     setPoint(result === "success" ? H5_TARGET : H5_START);
   }, [result]);
 
@@ -80,9 +81,20 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
     if (!stage) return null;
     const rect = stage.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return null;
+    const physicalPoint = {
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
+    };
+    const rotation = stage.closest<HTMLElement>("[data-rotation]")?.dataset.rotation;
+    const logicalPoint = rotation === "90"
+      ? { x: physicalPoint.y, y: 1 - physicalPoint.x }
+      : rotation === "-90"
+        ? { x: 1 - physicalPoint.y, y: physicalPoint.x }
+        : physicalPoint;
+
     return {
-      x: clamp((event.clientX - rect.left) / rect.width, 0.08, 0.92),
-      y: clamp((event.clientY - rect.top) / rect.height, 0.18, 0.82),
+      x: clamp(logicalPoint.x, 0.08, 0.92),
+      y: clamp(logicalPoint.y, 0.18, 0.82),
     };
   };
 
@@ -115,16 +127,16 @@ export function H5DragDropDemo({ onResultChange, result }: DragDemoProps) {
       </div>
       <button
         type="button"
-        className="pointer-events-auto absolute grid h-[20%] min-h-[54px] w-[16%] min-w-[54px] cursor-grab place-items-center rounded-full border-[1px] border-[color:rgb(103_232_249_/_0.82)] bg-[radial-gradient(circle_at_35%_30%,#e0f2fe,#22d3ee_36%,#0e7490_72%)] text-[9px] font-black uppercase tracking-[0.12em] text-[#042f3a] shadow-[0_0_30px_rgb(34_211_238_/_0.72)] active:cursor-grabbing disabled:cursor-default"
+        className="pointer-events-auto absolute grid h-[20%] min-h-[54px] w-[16%] min-w-[54px] cursor-grab place-items-center rounded-full border-[1px] border-[color:rgb(103_232_249_/_0.82)] bg-[radial-gradient(circle_at_35%_30%,#e0f2fe,#22d3ee_36%,#0e7490_72%)] text-[9px] font-black uppercase tracking-[0.12em] text-[#042f3a] shadow-[0_0_30px_rgb(34_211_238_/_0.72)] active:cursor-grabbing"
         data-testid="h5-drag-item"
         aria-label="可拖动的信号核心"
-        disabled={result === "success"}
         style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: "translate(-50%, -50%)" }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           const nextPoint = readPointerPoint(event);
           if (!nextPoint) return;
           draggingRef.current = true;
+          if (result === "success") onResultChange("idle");
           event.currentTarget.setPointerCapture(event.pointerId);
           setPoint(nextPoint);
         }}
@@ -168,6 +180,7 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
   const [point, setPoint] = useState(CANVAS_LANDSCAPE_LAYOUT.start);
 
   useEffect(() => {
+    if (draggingRef.current) return;
     setPoint(result === "success" ? layout.target : layout.start);
   }, [layout, result]);
 
@@ -236,9 +249,10 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
       <group
         position={[point.x, point.y, 0.12]}
         onPointerDown={(event) => {
-          if (result === "success" || event.button !== 0) return;
+          if (event.button !== 0) return;
           event.stopPropagation();
           draggingRef.current = true;
+          if (result === "success") onResultChange("idle");
           (event.target as ThreePointerCaptureTarget).setPointerCapture(event.pointerId);
           const nextPoint = readPointerPoint(event);
           if (nextPoint) setPoint(nextPoint);

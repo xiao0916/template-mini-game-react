@@ -15,16 +15,20 @@ async function dragByMouse(page: import("@playwright/test").Page, sourceTestId: 
   await page.mouse.up();
 }
 
-async function dragCanvasByMouse(page: import("@playwright/test").Page) {
+async function dragCanvasByMouse(
+  page: import("@playwright/test").Page,
+  start = { x: 0.446, y: 0.65 },
+  end = { x: 0.683, y: 0.65 },
+) {
   const canvas = page.getByTestId("game-canvas").locator("canvas");
   await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
   const box = await canvas.boundingBox();
 
   expect(box).not.toBeNull();
   if (!box) return;
-  await page.mouse.move(box.x + box.width * 0.446, box.y + box.height * 0.65);
+  await page.mouse.move(box.x + box.width * start.x, box.y + box.height * start.y);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.683, box.y + box.height * 0.65, { steps: 8 });
+  await page.mouse.move(box.x + box.width * end.x, box.y + box.height * end.y, { steps: 8 });
   await page.mouse.up();
 }
 
@@ -236,6 +240,39 @@ test("Canvas 拖拽成功后切换模式仍保留完成状态", async ({ page })
   await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
 });
 
+test("普通 H5 成功后可从目标重新投放", async ({ page }) => {
+  await page.goto("/");
+
+  await dragByMouse(page, "h5-drag-item", "h5-drop-target");
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+
+  const item = page.getByTestId("h5-drag-item");
+  const stage = page.getByTestId("h5-drag-stage");
+  const itemBox = await item.boundingBox();
+  const stageBox = await stage.boundingBox();
+  expect(itemBox).not.toBeNull();
+  expect(stageBox).not.toBeNull();
+  if (!itemBox || !stageBox) return;
+
+  await page.mouse.move(itemBox.x + itemBox.width / 2, itemBox.y + itemBox.height / 2);
+  await page.mouse.down();
+  await expect(page.getByTestId("drag-status")).toHaveText("拖动信号核心至能量槽");
+  await page.mouse.move(stageBox.x + stageBox.width * 0.42, stageBox.y + stageBox.height * 0.25, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByTestId("drag-status")).toHaveText("未命中目标，请重试");
+});
+
+test("Canvas 成功后可从目标重新投放", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("drag-mode-canvas").click();
+
+  await dragCanvasByMouse(page);
+  await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+
+  await dragCanvasByMouse(page, { x: 0.683, y: 0.65 }, { x: 0.48, y: 0.32 });
+  await expect(page.getByTestId("drag-status")).toHaveText("未命中目标，请重试");
+});
+
 test("Canvas 空白区域不会启动拖拽", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("drag-mode-canvas").click();
@@ -282,5 +319,74 @@ test("触摸 Pointer Event 可完成 Canvas 拖拽", async ({ browser }) => {
   }
 
   await expect(page.getByTestId("drag-status")).toHaveText("投放成功");
+  await context.close();
+});
+
+test("横屏旋转舞台中 H5 元素跟随横向鼠标移动", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { height: 390, width: 844 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  const item = page.getByTestId("h5-drag-item");
+  const initialBox = await item.boundingBox();
+  expect(initialBox).not.toBeNull();
+  if (!initialBox) return;
+
+  const start = { x: initialBox.x + initialBox.width / 2, y: initialBox.y + initialBox.height / 2 };
+  const end = { x: start.x + 60, y: start.y };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+
+  const movedBox = await item.boundingBox();
+  expect(movedBox).not.toBeNull();
+  if (movedBox) {
+    const movedCenter = { x: movedBox.x + movedBox.width / 2, y: movedBox.y + movedBox.height / 2 };
+    expect(Math.abs(movedCenter.x - end.x)).toBeLessThan(12);
+    expect(Math.abs(movedCenter.y - end.y)).toBeLessThan(12);
+  }
+
+  await page.mouse.up();
+  await context.close();
+});
+
+test("顺时针旋转舞台中 H5 元素跟随横向鼠标移动", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { height: 390, width: 844 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await page.getByTestId("game-stage").evaluate((stage) => {
+    stage.setAttribute("data-rotation", "90");
+    (stage as HTMLElement).style.transform = "translate(-50%, -50%) rotate(90deg)";
+  });
+  const item = page.getByTestId("h5-drag-item");
+  const initialBox = await item.boundingBox();
+  expect(initialBox).not.toBeNull();
+  if (!initialBox) return;
+
+  const start = { x: initialBox.x + initialBox.width / 2, y: initialBox.y + initialBox.height / 2 };
+  const end = { x: start.x + 60, y: start.y };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+
+  const movedBox = await item.boundingBox();
+  expect(movedBox).not.toBeNull();
+  if (movedBox) {
+    const movedCenter = { x: movedBox.x + movedBox.width / 2, y: movedBox.y + movedBox.height / 2 };
+    expect(Math.abs(movedCenter.x - end.x)).toBeLessThan(12);
+    expect(Math.abs(movedCenter.y - end.y)).toBeLessThan(12);
+  }
+
+  await page.mouse.up();
   await context.close();
 });
