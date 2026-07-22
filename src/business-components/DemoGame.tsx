@@ -49,6 +49,8 @@ export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }
     setCanvasReady(false);
   }, [dragKind, dragMode]);
 
+  useEffect(() => () => gameAudio.stopBgm(), []);
+
   useEffect(() => {
     gameAudio.configure({ resourceBaseUrl: options.resourceBaseUrl });
     const unsubscribe = gameAudio.subscribe(setAudioSettings);

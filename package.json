@@ -23,12 +23,14 @@
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "game-sdk-builder": "^2.0.0",
+    "hls.js": "^1.5.20",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.185.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@types/three": "^0.184.0",
     "free-tex-packer-core": "0.3.8"
   }
 }

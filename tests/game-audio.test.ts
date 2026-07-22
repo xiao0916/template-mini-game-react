@@ -59,6 +59,27 @@ test("手势解锁接口会在一次调用中启动背景音乐", async () => {
   assert.equal(audios[0].playCalls, 1);
 });
 
+test("停止背景音乐会暂停、归零并清除待播放请求", async () => {
+  const audios: FakeAudio[] = [];
+  const audio = createGameAudioManager({
+    createAudio: () => {
+      const instance = new FakeAudio();
+      audios.push(instance);
+      return instance as unknown as HTMLAudioElement;
+    },
+  });
+
+  await audio.unlockAndPlayBgm();
+  audios[0].currentTime = 12;
+  audio.stopBgm();
+
+  assert.equal(audios[0].paused, true);
+  assert.equal(audios[0].currentTime, 0);
+  assert.equal(await audio.unlock(), "skipped");
+  assert.equal(await audio.playBgm(), "played");
+  assert.equal(audios.length, 2);
+});
+
 test("静音会抑制音效，音效音量会应用到新实例", async () => {
   const audios: FakeAudio[] = [];
   const audio = createGameAudioManager({

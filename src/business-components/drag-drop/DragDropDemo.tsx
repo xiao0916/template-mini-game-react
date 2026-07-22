@@ -139,6 +139,7 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), []);
   const dragPoint = useMemo(() => new Vector3(), []);
   const layout = size.height > size.width ? CANVAS_PORTRAIT_LAYOUT : CANVAS_LANDSCAPE_LAYOUT;
+  const boardOutlineGeometry = useMemo(() => new PlaneGeometry(...layout.boardSize), [layout.boardSize]);
   const { begin, cancel, end, move, point } = useDragDrop({
     initialPoint: layout.start,
     onResultChange,
@@ -167,6 +168,11 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
     return () => canvas.removeEventListener("lostpointercapture", cancel);
   }, [cancel, gl]);
 
+  useEffect(() => {
+    // 边框源几何体不会由 R3F 自动持有，布局切换或卸载时在此释放。
+    return () => boardOutlineGeometry.dispose();
+  }, [boardOutlineGeometry]);
+
   return (
     <group>
       <mesh position={[layout.boardCenter.x, layout.boardCenter.y, -0.24]}>
@@ -174,7 +180,7 @@ export function CanvasDragDropDemo({ onReady, onResultChange, result }: CanvasDr
         <meshBasicMaterial color="#07111f" transparent opacity={0.78} />
       </mesh>
       <lineSegments position={[layout.boardCenter.x, layout.boardCenter.y, -0.2]}>
-        <edgesGeometry args={[new PlaneGeometry(...layout.boardSize)]} />
+        <edgesGeometry args={[boardOutlineGeometry]} />
         <lineBasicMaterial color="#155e75" transparent opacity={0.9} />
       </lineSegments>
       <Suspense fallback={null}>

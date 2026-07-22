@@ -30,11 +30,11 @@ test("图集帧会转换为 Tailwind 类和 CSS 变量", () => {
   assert.deepEqual(atlasStyle, {
     className: "bg-no-repeat [background-image:var(--sprite-atlas-image)] [background-position:var(--sprite-atlas-position)] [background-size:var(--sprite-atlas-size)] [width:var(--sprite-atlas-width)] [height:var(--sprite-atlas-height)]",
     style: {
-      "--sprite-atlas-height": "1.44rem",
+      "--sprite-atlas-height": "0.5625rem",
       "--sprite-atlas-image": "url(https://cdn.example/game/images/sprite-atlas_94d755df9054.png)",
-      "--sprite-atlas-position": "-0.02667rem -0.02667rem",
-      "--sprite-atlas-size": "13.65333rem 13.65333rem",
-      "--sprite-atlas-width": "5.41333rem",
+      "--sprite-atlas-position": "-0.01042rem -0.01042rem",
+      "--sprite-atlas-size": "5.33333rem 5.33333rem",
+      "--sprite-atlas-width": "2.11458rem",
     },
   });
 });
@@ -46,10 +46,10 @@ test("未命中的图集帧不会生成样式", () => {
 test("图集样式会按缩放比例计算背景和元素尺寸", () => {
   const atlasStyle = createSpriteAtlasStyle(spriteAtlas.get("after-time.png"), { scale: 0.5 });
 
-  assert.equal(atlasStyle?.style["--sprite-atlas-position"], "-0.01333rem -0.01333rem");
-  assert.equal(atlasStyle?.style["--sprite-atlas-size"], "6.82667rem 6.82667rem");
-  assert.equal(atlasStyle?.style["--sprite-atlas-width"], "2.70667rem");
-  assert.equal(atlasStyle?.style["--sprite-atlas-height"], "0.72rem");
+  assert.equal(atlasStyle?.style["--sprite-atlas-position"], "-0.00521rem -0.00521rem");
+  assert.equal(atlasStyle?.style["--sprite-atlas-size"], "2.66667rem 2.66667rem");
+  assert.equal(atlasStyle?.style["--sprite-atlas-width"], "1.05729rem");
+  assert.equal(atlasStyle?.style["--sprite-atlas-height"], "0.28125rem");
 });
 
 test("图集样式拒绝非法缩放比例", () => {
@@ -59,18 +59,26 @@ test("图集样式拒绝非法缩放比例", () => {
   );
 });
 
-test("CSS 单位工具可在设计稿 px、vw 与 rem 间换算", () => {
+test("CSS 单位工具支持显式设计稿基准换算", () => {
+  assert.equal(px2vw(375, 750), 50);
+  assert.equal(vw2px(50, 750), 375);
+  assert.equal(px2rem(75, 75), 1);
+  assert.equal(rem2px(1, 75), 75);
+  assert.equal(px2vw(-15, 750), -2);
+});
+
+test("CSS 单位工具默认使用当前共享配置", () => {
   assert.equal(px2vw(gameCssConfig.designWidth / 2), 50);
   assert.equal(vw2px(50), gameCssConfig.designWidth / 2);
   assert.equal(px2rem(gameCssConfig.remRootValue), 1);
   assert.equal(rem2px(1), gameCssConfig.remRootValue);
-  assert.equal(px2vw(-15), -2);
+  assert.equal(px2vw(-15), -0.78125);
 });
 
-test("图集 CSS 长度在 px 编译模式中保留设计稿像素", () => {
+test("图集 CSS 长度遵循当前共享 CSS 配置", () => {
   assert.equal(pxToCssLength(375, "px"), "375px");
-  assert.equal(pxToCssLength(375, "vw"), "50vw");
-  assert.equal(pxToCssLength(75, "rem"), "1rem");
+  assert.equal(pxToCssLength(375, "vw"), "19.53125vw");
+  assert.equal(pxToCssLength(75, "rem"), "0.39063rem");
 });
 
 test("资源 URL 工具保留默认与自定义根路径语义", () => {

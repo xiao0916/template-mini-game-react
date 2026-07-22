@@ -48,7 +48,7 @@ function PuzzlePieceButton({ controller, piece, stageRef }: { controller: Puzzle
     if (!stage) return null;
     const rotationValue = stage.closest<HTMLElement>("[data-rotation]")?.dataset.rotation;
     const rotation = rotationValue === "90" ? 90 : rotationValue === "-90" ? -90 : 0;
-    return getRotatedStagePointerPoint({ ...H5_BOUNDS, clientX: event.clientX, clientY: event.clientY, rect: stage.getBoundingClientRect(), rotation });
+    return getRotatedStagePointerPoint({ bounds: H5_BOUNDS, clientX: event.clientX, clientY: event.clientY, rect: stage.getBoundingClientRect(), rotation });
   };
 
   return (
@@ -123,6 +123,12 @@ export function PuzzleH5Demo({ controller }: PuzzleDemoProps) {
 function PuzzleCanvasPiece({ controller, piece, plane, target }: { controller: PuzzleDragController; piece: PuzzlePieceState; plane: Plane; target: Vector3 }) {
   const [x, y] = getCanvasPoint(piece.point);
   const [targetX, targetY] = getCanvasPoint(piece.target);
+  const targetOutlineGeometry = useMemo(() => new PlaneGeometry(0.95, 0.95), []);
+
+  useEffect(() => {
+    // 边框几何体传给 edgesGeometry 后仍由此处持有，组件卸载时需主动释放源几何体。
+    return () => targetOutlineGeometry.dispose();
+  }, [targetOutlineGeometry]);
 
   return (
     <>
@@ -131,7 +137,7 @@ function PuzzleCanvasPiece({ controller, piece, plane, target }: { controller: P
         <meshBasicMaterial color={piece.color} transparent opacity={0.12} />
       </mesh>
       <lineSegments position={[targetX, targetY, -0.02]}>
-        <edgesGeometry args={[new PlaneGeometry(0.95, 0.95)]} />
+        <edgesGeometry args={[targetOutlineGeometry]} />
         <lineBasicMaterial color={piece.color} transparent opacity={0.9} />
       </lineSegments>
       <group
@@ -178,6 +184,12 @@ export function PuzzleCanvasDemo({ controller, onReady }: PuzzleDemoProps) {
   const { gl } = useThree();
   const plane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), []);
   const target = useMemo(() => new Vector3(), []);
+  const boardOutlineGeometry = useMemo(() => new PlaneGeometry(BOARD_WIDTH, BOARD_HEIGHT), []);
+
+  useEffect(() => {
+    // boardOutlineGeometry 由组件创建且供 edgesGeometry 读取，卸载时必须释放。
+    return () => boardOutlineGeometry.dispose();
+  }, [boardOutlineGeometry]);
 
   useEffect(() => {
     onReady?.();
@@ -198,7 +210,7 @@ export function PuzzleCanvasDemo({ controller, onReady }: PuzzleDemoProps) {
         <meshBasicMaterial color="#07111f" transparent opacity={0.82} />
       </mesh>
       <lineSegments position={[0, 0, -0.25]}>
-        <edgesGeometry args={[new PlaneGeometry(BOARD_WIDTH, BOARD_HEIGHT)]} />
+        <edgesGeometry args={[boardOutlineGeometry]} />
         <lineBasicMaterial color="#155e75" transparent opacity={0.9} />
       </lineSegments>
       <Suspense fallback={null}>

@@ -46,7 +46,7 @@ export function GameHud({ audioSettings, dragKind, dragMode, dragResult, puzzleP
   const [isAudioPanelOpen, setIsAudioPanelOpen] = useState(false);
   const atlasFrame = spriteAtlas.get("after-time.png");
   const atlasPreview = createSpriteAtlasStyle(atlasFrame, { resourceBaseUrl, scale: 0.42 });
-  const primaryControlStyle = { minHeight: 44 };
+  const primaryControlStyle = { minHeight: "56px", minWidth: "60px" };
 
   return (
     <section
@@ -109,7 +109,7 @@ export function GameHud({ audioSettings, dragKind, dragMode, dragResult, puzzleP
         <div className="pointer-events-auto relative">
           <button
             type="button"
-            className="h-[46px] rounded-full border-[1px] border-[color:var(--game-accent)] bg-[color:rgb(14_116_144_/_0.82)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(14_116_144_/_0.28)] transition hover:-translate-y-px hover:bg-[var(--game-button-hover)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none"
+            className="h-[56px] rounded-full border-[1px] border-[color:var(--game-accent)] bg-[color:rgb(14_116_144_/_0.82)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(14_116_144_/_0.28)] transition hover:-translate-y-px hover:bg-[var(--game-button-hover)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none"
             data-testid="audio-settings-control"
             aria-controls="audio-settings-panel"
             aria-expanded={isAudioPanelOpen}
@@ -132,7 +132,7 @@ export function GameHud({ audioSettings, dragKind, dragMode, dragResult, puzzleP
             </section>
           ) : null}
         </div>
-        <button type="button" className="pointer-events-auto h-[46px] rounded-full border-[1px] border-[color:rgb(224_242_254_/_0.42)] bg-[color:rgb(7_17_31_/_0.74)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(0_0_0_/_0.2)] transition hover:-translate-y-px hover:border-[var(--game-accent)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none" data-testid="fullscreen-control" onClick={onToggleFullscreen} style={primaryControlStyle}>
+        <button type="button" className="pointer-events-auto h-[56px] rounded-full border-[1px] border-[color:rgb(224_242_254_/_0.42)] bg-[color:rgb(7_17_31_/_0.74)] px-[18px] text-[14px] font-bold text-[var(--game-text)] shadow-[0_8px_24px_rgb(0_0_0_/_0.2)] transition hover:-translate-y-px hover:border-[var(--game-accent)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--game-focus)] motion-reduce:transition-none" data-testid="fullscreen-control" onClick={onToggleFullscreen} style={primaryControlStyle}>
           {isFullscreen ? "退出全屏" : "进入全屏"}
         </button>
       </div>

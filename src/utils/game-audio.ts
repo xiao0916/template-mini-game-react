@@ -25,6 +25,8 @@ export type GameAudioManager = {
   setBgmVolume: (volume: number) => void;
   setMuted: (isMuted: boolean) => void;
   setSfxVolume: (volume: number) => void;
+  /** 停止背景音乐并释放当前实例，供游戏卸载时调用。 */
+  stopBgm: () => void;
   subscribe: (listener: (snapshot: GameAudioSnapshot) => void) => () => void;
   unlock: () => Promise<AudioActionResult>;
   unlockAndPlayBgm: () => Promise<AudioActionResult>;
@@ -140,6 +142,14 @@ export function createGameAudioManager(options: GameAudioManagerOptions = {}): G
     setSfxVolume(nextVolume) {
       sfxVolume = Math.min(1, Math.max(0, nextVolume));
       emit();
+    },
+    stopBgm() {
+      if (bgm) {
+        bgm.pause();
+        bgm.currentTime = 0;
+      }
+      bgm = undefined;
+      isBgmRequested = false;
     },
     subscribe(listener) {
       listeners.add(listener);

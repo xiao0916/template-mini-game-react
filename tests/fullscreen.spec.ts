@@ -83,8 +83,6 @@ test("resources finish loading before the game HUD is mounted", async ({ page })
 
   releaseResources();
   await expect(page.getByTestId("loading-progress")).toHaveAttribute("aria-valuenow", "100");
-  await page.waitForTimeout(400);
-  await expect(page.getByTestId("game-hud")).toHaveCount(0);
   await expect(page.getByTestId("game-hud")).toBeVisible();
 });
 
@@ -124,7 +122,7 @@ test("the template keeps its full-bleed shell on phone viewports", async ({ page
   await expect(page.getByTestId("game-hud")).toBeVisible();
 });
 
-test("portrait fullscreen mode rotates a touch landscape viewport", async ({ browser }) => {
+test("landscape fullscreen mode keeps a touch landscape viewport unrotated", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     isMobile: true,
@@ -134,14 +132,14 @@ test("portrait fullscreen mode rotates a touch landscape viewport", async ({ bro
   await page.goto("/");
 
   await expect(page.getByTestId("game-shell")).toHaveCSS("height", "390px");
-  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "0");
   await expect(page.getByTestId("game-canvas")).toHaveCount(0);
   await expect(page.getByTestId("game-hud")).toBeVisible();
   await expect(page.getByTestId("fullscreen-control")).toBeVisible();
   await context.close();
 });
 
-test("portrait fullscreen mode rotates after a phone orientation switch", async ({ browser }) => {
+test("landscape fullscreen mode rotates a touch portrait viewport and restores after orientation switch", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     isMobile: true,
@@ -151,11 +149,12 @@ test("portrait fullscreen mode rotates after a phone orientation switch", async 
   await page.goto("/");
 
   const initialRootFontSize = await page.evaluate(() => document.documentElement.style.fontSize);
-  expect(initialRootFontSize).toBe("37.5px");
+  expect(initialRootFontSize).toBe("66.7px");
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "90");
 
   await page.setViewportSize({ height: 375, width: 667 });
 
-  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "0");
   await expect.poll(() => page.evaluate(() => document.documentElement.style.fontSize)).toBe(initialRootFontSize);
   await expect(page.getByTestId("game-canvas")).toHaveCount(0);
   await expect(page.getByTestId("h5-drag-stage")).toBeVisible();
@@ -321,6 +320,34 @@ test("拼图 H5 会逐片吸附、锁定并完成", async ({ page }) => {
   await expect(page.getByTestId("puzzle-h5-progress")).toHaveText("已归位 0/4");
 });
 
+test("拼图 H5 拖动时会限制在棋盘交互边界内", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("drag-demo-puzzle").click();
+
+  const stage = page.getByTestId("puzzle-h5-stage");
+  const piece = page.getByTestId("puzzle-h5-piece-alpha");
+  const stageBox = await stage.boundingBox();
+  const pieceBox = await piece.boundingBox();
+  expect(stageBox).not.toBeNull();
+  expect(pieceBox).not.toBeNull();
+  if (!stageBox || !pieceBox) return;
+
+  await page.mouse.move(pieceBox.x + pieceBox.width / 2, pieceBox.y + pieceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(stageBox.x + stageBox.width, stageBox.y + stageBox.height, { steps: 8 });
+
+  const movedBox = await piece.boundingBox();
+  expect(movedBox).not.toBeNull();
+  if (movedBox) {
+    const centerX = (movedBox.x + movedBox.width / 2 - stageBox.x) / stageBox.width;
+    const centerY = (movedBox.y + movedBox.height / 2 - stageBox.y) / stageBox.height;
+    expect(centerX).toBeLessThanOrEqual(0.92);
+    expect(centerY).toBeLessThanOrEqual(0.86);
+  }
+
+  await page.mouse.up();
+});
+
 test("拼图 Canvas 支持命中、重试并与 H5 保持独立进度", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("drag-demo-puzzle").click();
@@ -375,7 +402,7 @@ test("触摸 Pointer Event 可完成 Canvas 拖拽", async ({ browser }) => {
   await context.close();
 });
 
-test("横屏旋转舞台中 H5 元素跟随横向鼠标移动", async ({ browser }) => {
+test("横屏原生舞台中 H5 元素跟随横向鼠标移动", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
     isMobile: true,
@@ -384,7 +411,7 @@ test("横屏旋转舞台中 H5 元素跟随横向鼠标移动", async ({ browser
   const page = await context.newPage();
   await page.goto("/");
 
-  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "-90");
+  await expect(page.getByTestId("game-stage")).toHaveAttribute("data-rotation", "0");
   const item = page.getByTestId("h5-drag-item");
   const initialBox = await item.boundingBox();
   expect(initialBox).not.toBeNull();
