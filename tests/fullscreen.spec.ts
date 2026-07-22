@@ -32,6 +32,23 @@ async function dragCanvasByMouse(
   await page.mouse.up();
 }
 
+async function dragPuzzleCanvasByMouse(
+  page: import("@playwright/test").Page,
+  start = { x: 0.318, y: 0.38 },
+  end = { x: 0.596, y: 0.404 },
+) {
+  const canvas = page.getByTestId("game-canvas").locator("canvas");
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
+  const box = await canvas.boundingBox();
+
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await page.mouse.move(box.x + box.width * start.x, box.y + box.height * start.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * end.x, box.y + box.height * end.y, { steps: 8 });
+  await page.mouse.up();
+}
+
 async function dragByTouch(locator: import("@playwright/test").Locator, start: { x: number; y: number }, end: { x: number; y: number }) {
   const pointer = { button: 0, buttons: 1, isPrimary: true, pointerId: 1, pointerType: "touch" };
 
@@ -283,6 +300,42 @@ test("Canvas 空白区域不会启动拖拽", async ({ page }) => {
   if (box) await page.mouse.click(box.x + box.width * 0.05, box.y + box.height * 0.05);
 
   await expect(page.getByTestId("drag-status")).toHaveText("拖动信号核心至能量槽");
+});
+
+test("拼图 H5 会逐片吸附、锁定并完成", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("drag-demo-puzzle").click();
+
+  await expect(page.getByTestId("puzzle-h5-stage")).toBeVisible();
+  await expect(page.getByTestId("game-canvas")).toHaveCount(0);
+
+  for (const id of ["alpha", "beta", "gamma", "delta"]) {
+    await dragByMouse(page, `puzzle-h5-piece-${id}`, `puzzle-h5-target-${id}`);
+  }
+
+  await expect(page.getByTestId("puzzle-h5-progress")).toHaveText("已归位 4/4");
+  await expect(page.getByTestId("drag-status")).toHaveText("拼图完成");
+  await expect(page.getByTestId("puzzle-h5-piece-alpha")).toBeDisabled();
+
+  await page.getByTestId("drag-reset-control").click();
+  await expect(page.getByTestId("puzzle-h5-progress")).toHaveText("已归位 0/4");
+});
+
+test("拼图 Canvas 支持命中、重试并与 H5 保持独立进度", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("drag-demo-puzzle").click();
+  await page.getByTestId("drag-mode-canvas").click();
+
+  await expect(page.getByTestId("puzzle-h5-stage")).toHaveCount(0);
+  await expect(page.getByTestId("game-canvas")).toHaveAttribute("data-canvas-ready", "true");
+  await dragPuzzleCanvasByMouse(page);
+  await expect(page.getByTestId("drag-status")).toHaveText(/1\/4/);
+
+  await dragPuzzleCanvasByMouse(page, { x: 0.42, y: 0.38 }, { x: 0.596, y: 0.404 });
+  await expect(page.getByTestId("drag-status")).toHaveText(/上一片未命中/);
+
+  await page.getByTestId("drag-mode-h5").click();
+  await expect(page.getByTestId("puzzle-h5-progress")).toHaveText("已归位 0/4");
 });
 
 test("触摸 Pointer Event 可完成 H5 拖拽", async ({ browser }) => {

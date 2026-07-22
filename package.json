@@ -16,7 +16,7 @@
     "build:sdk": "npx game-sdk-builder build --target sdk",
     "preview": "npx game-sdk-builder preview",
     "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "node --test tests/render.test.ts tests/orientation.test.ts tests/drag-point.test.ts tests/design-stage.test.ts tests/game-layout.test.ts tests/game-config.test.ts tests/sdk-options.test.ts tests/root-font-size.test.ts tests/game-audio.test.ts tests/resource-preloader.test.ts tests/resource-preload-generator.test.ts tests/sprite-atlas.test.ts tests/sprite-atlas-generator.test.ts",
+    "test:unit": "node --test tests/render.test.ts tests/orientation.test.ts tests/drag-point.test.ts tests/puzzle-drag.test.ts tests/design-stage.test.ts tests/game-layout.test.ts tests/game-config.test.ts tests/sdk-options.test.ts tests/root-font-size.test.ts tests/game-audio.test.ts tests/resource-preloader.test.ts tests/resource-preload-generator.test.ts tests/sprite-atlas.test.ts tests/sprite-atlas-generator.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

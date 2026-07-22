@@ -10,6 +10,7 @@ import { useDragDrop, type DragDropResult } from "./useDragDrop";
 export type { DragDropResult } from "./useDragDrop";
 
 export type DragDemoMode = "h5" | "canvas";
+export type DragDemoKind = "single" | "puzzle";
 
 type DragDemoProps = {
   result: DragDropResult;

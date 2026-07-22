@@ -3,16 +3,30 @@ import { useEffect, useRef, useState } from "react";
 
 import type { GameRenderProps } from "../components/GameFrame";
 import { gameAudio, type GameAudioSnapshot } from "../utils/game-audio";
-import { CanvasDragDropDemo, H5DragDropDemo, type DragDemoMode, type DragDropResult } from "./drag-drop";
+import {
+  CanvasDragDropDemo,
+  H5DragDropDemo,
+  PUZZLE_PIECES,
+  PUZZLE_TARGET_RADIUS,
+  PuzzleCanvasDemo,
+  PuzzleH5Demo,
+  type DragDemoKind,
+  type DragDemoMode,
+  type DragDropResult,
+  usePuzzleDrag,
+} from "./drag-drop";
 import { GameHud } from "./GameHud";
 
 export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }: GameRenderProps) {
   const [status, setStatus] = useState("游戏已就绪");
   const [audioSettings, setAudioSettings] = useState<GameAudioSnapshot>(() => gameAudio.getSnapshot());
+  const [dragKind, setDragKind] = useState<DragDemoKind>("single");
   const [dragMode, setDragMode] = useState<DragDemoMode>("h5");
   const [dragResults, setDragResults] = useState<Record<DragDemoMode, DragDropResult>>({ canvas: "idle", h5: "idle" });
   const [isCanvasReady, setCanvasReady] = useState(false);
   const canvasStageRef = useRef<HTMLDivElement>(null);
+  const h5Puzzle = usePuzzleDrag({ pieces: PUZZLE_PIECES, targetRadius: PUZZLE_TARGET_RADIUS });
+  const canvasPuzzle = usePuzzleDrag({ pieces: PUZZLE_PIECES, targetRadius: PUZZLE_TARGET_RADIUS });
 
   useEffect(() => {
     setStatus(isFullscreen ? "已进入全屏" : "游戏已就绪");
@@ -32,8 +46,8 @@ export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }
   }, [dragMode]);
 
   useEffect(() => {
-    if (dragMode === "h5") setCanvasReady(false);
-  }, [dragMode]);
+    setCanvasReady(false);
+  }, [dragKind, dragMode]);
 
   useEffect(() => {
     gameAudio.configure({ resourceBaseUrl: options.resourceBaseUrl });
@@ -70,8 +84,16 @@ export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }
   };
 
   const dragResult = dragResults[dragMode];
+  const puzzleController = dragMode === "canvas" ? canvasPuzzle : h5Puzzle;
   const setDragResult = (result: DragDropResult) => {
     setDragResults((current) => ({ ...current, [dragMode]: result }));
+  };
+  const handleResetDrag = () => {
+    if (dragKind === "puzzle") {
+      puzzleController.reset();
+      return;
+    }
+    setDragResult("idle");
   };
 
   return (
@@ -91,19 +113,30 @@ export function DemoGame({ isFullscreen, options, pixelRatio, toggleFullscreen }
             <ambientLight intensity={0.65} />
             <directionalLight color="#e0f2fe" intensity={2.2} position={[4, 5, 4]} />
             <pointLight color="#22d3ee" intensity={22} position={[-3, 1, 3]} distance={14} />
-            <CanvasDragDropDemo result={dragResult} onReady={() => setCanvasReady(true)} onResultChange={setDragResult} />
+            {dragKind === "puzzle" ? (
+              <PuzzleCanvasDemo controller={canvasPuzzle} onReady={() => setCanvasReady(true)} />
+            ) : (
+              <CanvasDragDropDemo result={dragResult} onReady={() => setCanvasReady(true)} onResultChange={setDragResult} />
+            )}
           </Canvas>
         </div>
-      ) : <H5DragDropDemo result={dragResult} onResultChange={setDragResult} />}
+      ) : dragKind === "puzzle" ? (
+        <PuzzleH5Demo controller={h5Puzzle} />
+      ) : (
+        <H5DragDropDemo result={dragResult} onResultChange={setDragResult} />
+      )}
       <GameHud
         audioSettings={audioSettings}
+        dragKind={dragKind}
         dragMode={dragMode}
         dragResult={dragResult}
+        puzzleProgress={{ isComplete: puzzleController.isComplete, lastOutcome: puzzleController.lastOutcome, placedCount: puzzleController.placedCount, total: puzzleController.pieces.length }}
         isFullscreen={isFullscreen}
+        onDragKindChange={setDragKind}
         onBgmVolumeChange={gameAudio.setBgmVolume}
         onDragModeChange={setDragMode}
         onPlayEffect={() => void gameAudio.playSfx("effect")}
-        onResetDrag={() => setDragResult("idle")}
+        onResetDrag={handleResetDrag}
         onSfxVolumeChange={gameAudio.setSfxVolume}
         onToggleMute={() => gameAudio.setMuted(!gameAudio.getSnapshot().isMuted)}
         onToggleFullscreen={handleToggleFullscreen}

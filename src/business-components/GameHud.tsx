@@ -3,14 +3,24 @@ import { useState } from "react";
 import { spriteAtlas } from "../../sprite-atlas/index";
 import type { GameAudioSnapshot } from "../utils/game-audio";
 import { createSpriteAtlasStyle } from "../utils/sprite-atlas-style";
-import type { DragDemoMode, DragDropResult } from "./drag-drop";
+import type { DragDemoKind, DragDemoMode, DragDropResult, PuzzleDropOutcome } from "./drag-drop";
+
+type PuzzleProgress = {
+  isComplete: boolean;
+  lastOutcome: PuzzleDropOutcome;
+  placedCount: number;
+  total: number;
+};
 
 type GameHudProps = {
   audioSettings: GameAudioSnapshot;
+  dragKind: DragDemoKind;
   dragMode: DragDemoMode;
   dragResult: DragDropResult;
+  puzzleProgress: PuzzleProgress;
   isFullscreen: boolean;
   onBgmVolumeChange: (volume: number) => void;
+  onDragKindChange: (kind: DragDemoKind) => void;
   onDragModeChange: (mode: DragDemoMode) => void;
   onPlayEffect: () => void;
   onResetDrag: () => void;
@@ -21,13 +31,18 @@ type GameHudProps = {
   status: string;
 };
 
-function getDragStatus(result: DragDropResult) {
+function getDragStatus(result: DragDropResult, dragKind: DragDemoKind, puzzleProgress: PuzzleProgress) {
+  if (dragKind === "puzzle") {
+    if (puzzleProgress.isComplete) return "拼图完成";
+    if (puzzleProgress.lastOutcome === "retry") return `上一片未命中，请继续拼图（${puzzleProgress.placedCount}/${puzzleProgress.total}）`;
+    return `拖动拼片至对应目标槽（${puzzleProgress.placedCount}/${puzzleProgress.total}）`;
+  }
   if (result === "success") return "投放成功";
   if (result === "retry") return "未命中目标，请重试";
   return "拖动信号核心至能量槽";
 }
 
-export function GameHud({ audioSettings, dragMode, dragResult, isFullscreen, onBgmVolumeChange, onDragModeChange, onPlayEffect, onResetDrag, onSfxVolumeChange, onToggleMute, onToggleFullscreen, resourceBaseUrl, status }: GameHudProps) {
+export function GameHud({ audioSettings, dragKind, dragMode, dragResult, puzzleProgress, isFullscreen, onBgmVolumeChange, onDragKindChange, onDragModeChange, onPlayEffect, onResetDrag, onSfxVolumeChange, onToggleMute, onToggleFullscreen, resourceBaseUrl, status }: GameHudProps) {
   const [isAudioPanelOpen, setIsAudioPanelOpen] = useState(false);
   const atlasFrame = spriteAtlas.get("after-time.png");
   const atlasPreview = createSpriteAtlasStyle(atlasFrame, { resourceBaseUrl, scale: 0.42 });
@@ -70,7 +85,15 @@ export function GameHud({ audioSettings, dragMode, dragResult, isFullscreen, onB
               重置当前模式
             </button>
           </div>
-          <div className="mt-[10px] grid grid-cols-2 gap-[6px]" role="group" aria-label="拖拽模式">
+          <div className="mt-[10px] grid grid-cols-2 gap-[6px]" role="group" aria-label="演示类型">
+            <button type="button" data-testid="drag-demo-single" aria-pressed={dragKind === "single"} onClick={() => onDragKindChange("single")} className={`h-[36px] border-[1px] px-[10px] text-[12px] font-bold ${dragKind === "single" ? "border-[var(--game-accent)] bg-[color:rgb(34_211_238_/_0.14)] text-[var(--game-accent)]" : "border-[color:rgb(103_232_249_/_0.28)] text-[var(--game-muted)]"}`}>
+              单物体
+            </button>
+            <button type="button" data-testid="drag-demo-puzzle" aria-pressed={dragKind === "puzzle"} onClick={() => onDragKindChange("puzzle")} className={`h-[36px] border-[1px] px-[10px] text-[12px] font-bold ${dragKind === "puzzle" ? "border-[var(--game-accent)] bg-[color:rgb(34_211_238_/_0.14)] text-[var(--game-accent)]" : "border-[color:rgb(103_232_249_/_0.28)] text-[var(--game-muted)]"}`}>
+              拼图
+            </button>
+          </div>
+          <div className="mt-[6px] grid grid-cols-2 gap-[6px]" role="group" aria-label="拖拽渲染模式">
             <button type="button" data-testid="drag-mode-h5" aria-pressed={dragMode === "h5"} onClick={() => onDragModeChange("h5")} className={`h-[36px] border-[1px] px-[10px] text-[12px] font-bold ${dragMode === "h5" ? "border-[var(--game-accent)] bg-[color:rgb(34_211_238_/_0.14)] text-[var(--game-accent)]" : "border-[color:rgb(103_232_249_/_0.28)] text-[var(--game-muted)]"}`}>
               普通 H5
             </button>
@@ -78,7 +101,7 @@ export function GameHud({ audioSettings, dragMode, dragResult, isFullscreen, onB
               Canvas
             </button>
           </div>
-          <p className="mt-[9px] text-[12px] font-bold text-[#fde68a]" data-testid="drag-status" role="status" aria-live="polite">{getDragStatus(dragResult)}</p>
+          <p className="mt-[9px] text-[12px] font-bold text-[#fde68a]" data-testid="drag-status" role="status" aria-live="polite">{getDragStatus(dragResult, dragKind, puzzleProgress)}</p>
         </section>
       </div>
 
